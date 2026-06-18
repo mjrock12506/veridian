@@ -1,0 +1,36 @@
+{
+  "name": "delay",
+  "label_col": "is_late",
+  "numeric_features": [
+    "estimated_delivery_days",
+    "approval_delay_hours",
+    "n_items",
+    "n_sellers",
+    "n_products",
+    "total_price",
+    "total_freight",
+    "freight_ratio",
+    "avg_product_weight_g",
+    "max_product_weight_g",
+    "avg_product_volume_cm3",
+    "max_installments",
+    "n_payments",
+    "customer_seller_distance_km",
+    "purchase_month",
+    "purchase_dow",
+    "purchase_hour",
+    "purchase_is_weekend",
+    "cross_state_shipment"
+  ],
+  "categorical_features": [
+    "main_category",
+    "primary_payment_type",
+    "customer_state",
+    "main_seller_state"
+  ],
+  "positive_base_rate": 0.0811,
+  "roc_auc": 0.7845,
+  "decision_threshold": 0.1529,
+  "calibrated": true,
+  "calibration_method": "isotonic"
+}

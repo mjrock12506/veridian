@@ -1,0 +1,474 @@
+[
+  {
+    "feature": "num__estimated_delivery_days",
+    "mean_abs_shap": 0.58962
+  },
+  {
+    "feature": "num__purchase_month",
+    "mean_abs_shap": 0.57902
+  },
+  {
+    "feature": "num__customer_seller_distance_km",
+    "mean_abs_shap": 0.30265
+  },
+  {
+    "feature": "cat__customer_state_SP",
+    "mean_abs_shap": 0.16045
+  },
+  {
+    "feature": "num__approval_delay_hours",
+    "mean_abs_shap": 0.15886
+  },
+  {
+    "feature": "num__cross_state_shipment",
+    "mean_abs_shap": 0.14648
+  },
+  {
+    "feature": "num__total_freight",
+    "mean_abs_shap": 0.11309
+  },
+  {
+    "feature": "cat__customer_state_MG",
+    "mean_abs_shap": 0.10597
+  },
+  {
+    "feature": "cat__customer_state_RJ",
+    "mean_abs_shap": 0.09573
+  },
+  {
+    "feature": "num__avg_product_weight_g",
+    "mean_abs_shap": 0.09386
+  },
+  {
+    "feature": "cat__main_seller_state_SP",
+    "mean_abs_shap": 0.07383
+  },
+  {
+    "feature": "num__avg_product_volume_cm3",
+    "mean_abs_shap": 0.07118
+  },
+  {
+    "feature": "num__n_items",
+    "mean_abs_shap": 0.0608
+  },
+  {
+    "feature": "num__total_price",
+    "mean_abs_shap": 0.05898
+  },
+  {
+    "feature": "num__purchase_dow",
+    "mean_abs_shap": 0.05614
+  },
+  {
+    "feature": "num__freight_ratio",
+    "mean_abs_shap": 0.05215
+  },
+  {
+    "feature": "cat__customer_state_PR",
+    "mean_abs_shap": 0.05027
+  },
+  {
+    "feature": "num__purchase_hour",
+    "mean_abs_shap": 0.04484
+  },
+  {
+    "feature": "num__n_sellers",
+    "mean_abs_shap": 0.03952
+  },
+  {
+    "feature": "num__max_installments",
+    "mean_abs_shap": 0.03597
+  },
+  {
+    "feature": "num__max_product_weight_g",
+    "mean_abs_shap": 0.03168
+  },
+  {
+    "feature": "cat__customer_state_BA",
+    "mean_abs_shap": 0.02179
+  },
+  {
+    "feature": "cat__customer_state_DF",
+    "mean_abs_shap": 0.0213
+  },
+  {
+    "feature": "cat__main_seller_state_MG",
+    "mean_abs_shap": 0.01829
+  },
+  {
+    "feature": "cat__main_seller_state_RS",
+    "mean_abs_shap": 0.01738
+  },
+  {
+    "feature": "cat__main_category_sports_leisure",
+    "mean_abs_shap": 0.01573
+  },
+  {
+    "feature": "cat__main_category_housewares",
+    "mean_abs_shap": 0.0147
+  },
+  {
+    "feature": "cat__main_category_furniture_decor",
+    "mean_abs_shap": 0.01409
+  },
+  {
+    "feature": "cat__main_category_garden_tools",
+    "mean_abs_shap": 0.01277
+  },
+  {
+    "feature": "cat__customer_state_SC",
+    "mean_abs_shap": 0.01255
+  },
+  {
+    "feature": "cat__customer_state_AL",
+    "mean_abs_shap": 0.01165
+  },
+  {
+    "feature": "cat__main_category_bed_bath_table",
+    "mean_abs_shap": 0.0116
+  },
+  {
+    "feature": "cat__main_seller_state_PR",
+    "mean_abs_shap": 0.01111
+  },
+  {
+    "feature": "cat__primary_payment_type_credit_card",
+    "mean_abs_shap": 0.01102
+  },
+  {
+    "feature": "cat__main_category_cool_stuff",
+    "mean_abs_shap": 0.01092
+  },
+  {
+    "feature": "cat__main_seller_state_RJ",
+    "mean_abs_shap": 0.00843
+  },
+  {
+    "feature": "cat__customer_state_ES",
+    "mean_abs_shap": 0.00767
+  },
+  {
+    "feature": "cat__main_seller_state_MA",
+    "mean_abs_shap": 0.0076
+  },
+  {
+    "feature": "cat__main_seller_state_DF",
+    "mean_abs_shap": 0.00731
+  },
+  {
+    "feature": "cat__main_seller_state_PE",
+    "mean_abs_shap": 0.00685
+  },
+  {
+    "feature": "cat__customer_state_RS",
+    "mean_abs_shap": 0.00663
+  },
+  {
+    "feature": "cat__customer_state_MT",
+    "mean_abs_shap": 0.00661
+  },
+  {
+    "feature": "cat__customer_state_PE",
+    "mean_abs_shap": 0.00615
+  },
+  {
+    "feature": "cat__main_category_baby",
+    "mean_abs_shap": 0.00609
+  },
+  {
+    "feature": "cat__main_category_office_furniture",
+    "mean_abs_shap": 0.00599
+  },
+  {
+    "feature": "cat__main_category_perfumery",
+    "mean_abs_shap": 0.00589
+  },
+  {
+    "feature": "cat__customer_state_GO",
+    "mean_abs_shap": 0.00586
+  },
+  {
+    "feature": "cat__main_seller_state_GO",
+    "mean_abs_shap": 0.00549
+  },
+  {
+    "feature": "cat__main_category_computers_accessories",
+    "mean_abs_shap": 0.00527
+  },
+  {
+    "feature": "cat__customer_state_PA",
+    "mean_abs_shap": 0.00515
+  },
+  {
+    "feature": "cat__main_category_watches_gifts",
+    "mean_abs_shap": 0.0049
+  },
+  {
+    "feature": "cat__main_category_health_beauty",
+    "mean_abs_shap": 0.00464
+  },
+  {
+    "feature": "num__n_payments",
+    "mean_abs_shap": 0.00461
+  },
+  {
+    "feature": "num__n_products",
+    "mean_abs_shap": 0.00441
+  },
+  {
+    "feature": "cat__main_category_agro_industry_and_commerce",
+    "mean_abs_shap": 0.00431
+  },
+  {
+    "feature": "cat__main_category_market_place",
+    "mean_abs_shap": 0.0041
+  },
+  {
+    "feature": "cat__primary_payment_type_voucher",
+    "mean_abs_shap": 0.00408
+  },
+  {
+    "feature": "cat__main_category_electronics",
+    "mean_abs_shap": 0.004
+  },
+  {
+    "feature": "cat__customer_state_CE",
+    "mean_abs_shap": 0.00383
+  },
+  {
+    "feature": "cat__main_category_kitchen_dining_laundry_garden_furniture",
+    "mean_abs_shap": 0.00376
+  },
+  {
+    "feature": "cat__main_category_pet_shop",
+    "mean_abs_shap": 0.00374
+  },
+  {
+    "feature": "cat__main_seller_state_SC",
+    "mean_abs_shap": 0.0037
+  },
+  {
+    "feature": "cat__main_category_toys",
+    "mean_abs_shap": 0.0037
+  },
+  {
+    "feature": "cat__main_category_telephony",
+    "mean_abs_shap": 0.0033
+  },
+  {
+    "feature": "cat__main_category_luggage_accessories",
+    "mean_abs_shap": 0.00327
+  },
+  {
+    "feature": "cat__customer_state_MA",
+    "mean_abs_shap": 0.00304
+  },
+  {
+    "feature": "cat__main_category_consoles_games",
+    "mean_abs_shap": 0.00294
+  },
+  {
+    "feature": "cat__main_category_fashion_bags_accessories",
+    "mean_abs_shap": 0.0027
+  },
+  {
+    "feature": "cat__main_category_stationery",
+    "mean_abs_shap": 0.00253
+  },
+  {
+    "feature": "cat__customer_state_RO",
+    "mean_abs_shap": 0.00242
+  },
+  {
+    "feature": "cat__main_category_industry_commerce_and_business",
+    "mean_abs_shap": 0.00218
+  },
+  {
+    "feature": "cat__main_category_auto",
+    "mean_abs_shap": 0.00211
+  },
+  {
+    "feature": "cat__main_seller_state_BA",
+    "mean_abs_shap": 0.00193
+  },
+  {
+    "feature": "cat__primary_payment_type_debit_card",
+    "mean_abs_shap": 0.00192
+  },
+  {
+    "feature": "cat__primary_payment_type_boleto",
+    "mean_abs_shap": 0.0017
+  },
+  {
+    "feature": "cat__main_category_air_conditioning",
+    "mean_abs_shap": 0.00163
+  },
+  {
+    "feature": "cat__customer_state_MS",
+    "mean_abs_shap": 0.0016
+  },
+  {
+    "feature": "cat__main_category_food_drink",
+    "mean_abs_shap": 0.00158
+  },
+  {
+    "feature": "cat__main_category_art",
+    "mean_abs_shap": 0.00143
+  },
+  {
+    "feature": "cat__main_category_audio",
+    "mean_abs_shap": 0.00138
+  },
+  {
+    "feature": "cat__main_category_construction_tools_safety",
+    "mean_abs_shap": 0.00131
+  },
+  {
+    "feature": "cat__main_category_drinks",
+    "mean_abs_shap": 0.00122
+  },
+  {
+    "feature": "cat__customer_state_AC",
+    "mean_abs_shap": 0.00118
+  },
+  {
+    "feature": "cat__main_seller_state_ES",
+    "mean_abs_shap": 0.00115
+  },
+  {
+    "feature": "cat__main_seller_state_MT",
+    "mean_abs_shap": 0.00104
+  },
+  {
+    "feature": "cat__main_category_small_appliances",
+    "mean_abs_shap": 0.00093
+  },
+  {
+    "feature": "cat__main_category_costruction_tools_tools",
+    "mean_abs_shap": 0.00092
+  },
+  {
+    "feature": "cat__main_category_home_appliances",
+    "mean_abs_shap": 0.00092
+  },
+  {
+    "feature": "cat__customer_state_infrequent_sklearn",
+    "mean_abs_shap": 0.0009
+  },
+  {
+    "feature": "cat__main_category_construction_tools_construction",
+    "mean_abs_shap": 0.00085
+  },
+  {
+    "feature": "cat__main_category_computers",
+    "mean_abs_shap": 0.00082
+  },
+  {
+    "feature": "cat__main_category_home_construction",
+    "mean_abs_shap": 0.00075
+  },
+  {
+    "feature": "cat__customer_state_SE",
+    "mean_abs_shap": 0.00075
+  },
+  {
+    "feature": "cat__main_category_furniture_living_room",
+    "mean_abs_shap": 0.00074
+  },
+  {
+    "feature": "cat__main_category_fixed_telephony",
+    "mean_abs_shap": 0.00067
+  },
+  {
+    "feature": "cat__main_category_construction_tools_lights",
+    "mean_abs_shap": 0.00065
+  },
+  {
+    "feature": "cat__main_category_musical_instruments",
+    "mean_abs_shap": 0.00063
+  },
+  {
+    "feature": "cat__main_category_books_technical",
+    "mean_abs_shap": 0.0006
+  },
+  {
+    "feature": "cat__main_category_costruction_tools_garden",
+    "mean_abs_shap": 0.00059
+  },
+  {
+    "feature": "cat__customer_state_RN",
+    "mean_abs_shap": 0.00049
+  },
+  {
+    "feature": "cat__customer_state_AM",
+    "mean_abs_shap": 0.00043
+  },
+  {
+    "feature": "cat__main_category_home_confort",
+    "mean_abs_shap": 0.00043
+  },
+  {
+    "feature": "cat__main_category_infrequent_sklearn",
+    "mean_abs_shap": 0.00034
+  },
+  {
+    "feature": "cat__main_category_fashion_underwear_beach",
+    "mean_abs_shap": 0.00028
+  },
+  {
+    "feature": "cat__main_category_signaling_and_security",
+    "mean_abs_shap": 0.00027
+  },
+  {
+    "feature": "cat__customer_state_PI",
+    "mean_abs_shap": 0.00027
+  },
+  {
+    "feature": "cat__customer_state_PB",
+    "mean_abs_shap": 0.00026
+  },
+  {
+    "feature": "cat__main_seller_state_CE",
+    "mean_abs_shap": 0.00025
+  },
+  {
+    "feature": "num__purchase_is_weekend",
+    "mean_abs_shap": 0.00022
+  },
+  {
+    "feature": "cat__main_category_books_general_interest",
+    "mean_abs_shap": 0.00018
+  },
+  {
+    "feature": "cat__customer_state_TO",
+    "mean_abs_shap": 0.00017
+  },
+  {
+    "feature": "cat__main_category_home_appliances_2",
+    "mean_abs_shap": 0.00012
+  },
+  {
+    "feature": "cat__main_category_christmas_supplies",
+    "mean_abs_shap": 0.00011
+  },
+  {
+    "feature": "cat__main_seller_state_infrequent_sklearn",
+    "mean_abs_shap": 5e-05
+  },
+  {
+    "feature": "cat__main_category_fashion_male_clothing",
+    "mean_abs_shap": 0.0
+  },
+  {
+    "feature": "cat__main_category_fashion_shoes",
+    "mean_abs_shap": 0.0
+  },
+  {
+    "feature": "cat__main_category_food",
+    "mean_abs_shap": 0.0
+  },
+  {
+    "feature": "cat__main_category_furniture_bedroom",
+    "mean_abs_shap": 0.0
+  }
+]

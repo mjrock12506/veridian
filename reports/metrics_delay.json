@@ -1,0 +1,164 @@
+{
+  "model": "delay",
+  "n_test": 19294,
+  "positive_base_rate": 0.0811,
+  "ranking_metrics": {
+    "roc_auc": 0.7845,
+    "pr_auc": 0.2946,
+    "brier_score": 0.0655
+  },
+  "at_threshold_0.5": {
+    "precision": 0.6,
+    "recall": 0.0498,
+    "f1": 0.092,
+    "accuracy": 0.9202,
+    "confusion_matrix": [
+      [
+        17677,
+        52
+      ],
+      [
+        1487,
+        78
+      ]
+    ]
+  },
+  "tuned_threshold": 0.1529,
+  "at_tuned_threshold": {
+    "precision": 0.2762,
+    "recall": 0.4754,
+    "f1": 0.3494,
+    "accuracy": 0.8564,
+    "confusion_matrix": [
+      [
+        15779,
+        1950
+      ],
+      [
+        821,
+        744
+      ]
+    ]
+  },
+  "naive_baseline": {
+    "strategy": "predict_majority_class",
+    "accuracy": 0.9189,
+    "recall_on_positive": 0.0,
+    "roc_auc": 0.5
+  },
+  "uncalibrated_brier": 0.156,
+  "train_size": 61740,
+  "val_size": 15436,
+  "population": 96478,
+  "features": {
+    "numeric": [
+      "estimated_delivery_days",
+      "approval_delay_hours",
+      "n_items",
+      "n_sellers",
+      "n_products",
+      "total_price",
+      "total_freight",
+      "freight_ratio",
+      "avg_product_weight_g",
+      "max_product_weight_g",
+      "avg_product_volume_cm3",
+      "max_installments",
+      "n_payments",
+      "customer_seller_distance_km",
+      "purchase_month",
+      "purchase_dow",
+      "purchase_hour",
+      "purchase_is_weekend",
+      "cross_state_shipment"
+    ],
+    "categorical": [
+      "main_category",
+      "primary_payment_type",
+      "customer_state",
+      "main_seller_state"
+    ]
+  },
+  "shap_top": [
+    {
+      "feature": "num__estimated_delivery_days",
+      "mean_abs_shap": 0.58962
+    },
+    {
+      "feature": "num__purchase_month",
+      "mean_abs_shap": 0.57902
+    },
+    {
+      "feature": "num__customer_seller_distance_km",
+      "mean_abs_shap": 0.30265
+    },
+    {
+      "feature": "cat__customer_state_SP",
+      "mean_abs_shap": 0.16045
+    },
+    {
+      "feature": "num__approval_delay_hours",
+      "mean_abs_shap": 0.15886
+    },
+    {
+      "feature": "num__cross_state_shipment",
+      "mean_abs_shap": 0.14648
+    },
+    {
+      "feature": "num__total_freight",
+      "mean_abs_shap": 0.11309
+    },
+    {
+      "feature": "cat__customer_state_MG",
+      "mean_abs_shap": 0.10597
+    },
+    {
+      "feature": "cat__customer_state_RJ",
+      "mean_abs_shap": 0.09573
+    },
+    {
+      "feature": "num__avg_product_weight_g",
+      "mean_abs_shap": 0.09386
+    },
+    {
+      "feature": "cat__main_seller_state_SP",
+      "mean_abs_shap": 0.07383
+    },
+    {
+      "feature": "num__avg_product_volume_cm3",
+      "mean_abs_shap": 0.07118
+    },
+    {
+      "feature": "num__n_items",
+      "mean_abs_shap": 0.0608
+    },
+    {
+      "feature": "num__total_price",
+      "mean_abs_shap": 0.05898
+    },
+    {
+      "feature": "num__purchase_dow",
+      "mean_abs_shap": 0.05614
+    },
+    {
+      "feature": "num__freight_ratio",
+      "mean_abs_shap": 0.05215
+    },
+    {
+      "feature": "cat__customer_state_PR",
+      "mean_abs_shap": 0.05027
+    },
+    {
+      "feature": "num__purchase_hour",
+      "mean_abs_shap": 0.04484
+    },
+    {
+      "feature": "num__n_sellers",
+      "mean_abs_shap": 0.03952
+    },
+    {
+      "feature": "num__max_installments",
+      "mean_abs_shap": 0.03597
+    }
+  ]
+}
