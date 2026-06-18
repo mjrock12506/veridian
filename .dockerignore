@@ -1,0 +1,18 @@
+# Keep the build context (and image) small — but NOT models/artifacts/,
+# which the API needs at runtime.
+.git/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+data/
+notebooks/
+docs/
+web/
+ai/
+reports/
+tests/
+*.db
+.env
