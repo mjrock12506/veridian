@@ -1,0 +1,135 @@
+# Architecture
+
+Veridian is organized as a sequence of decoupled layers. Each layer consumes only
+the previous layer's output — a file, a table, or an API contract — so any layer
+can be replaced or upgraded without rewriting the others.
+
+```
+┌────────────┐   ┌────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐
+│  Raw data  │──▶│   Pipeline │──▶│  SQL warehouse│──▶│   Models   │──▶│   API    │
+│ Olist CSVs │   │ extract/   │   │ orders_order_ │   │ train +    │   │ FastAPI  │
+│ (9 files)  │   │ transform/ │   │ level +       │   │ evaluate + │   │ serving  │
+│            │   │ load       │   │ order_features│   │ calibrate  │   │          │
+└────────────┘   └────────────┘   └──────────────┘   └────────────┘   └──────────┘
+                                                            │                 ▲
+                                                            ▼                 │
+                                                   models/artifacts/  ────────┘
+                                                   (calibrated joblib
+                                                    pipelines + metadata)
+```
+
+## Layer 1 — Data
+
+The source is the Olist Brazilian E-Commerce dataset: nine CSVs covering orders,
+customers, items, payments, reviews, products, sellers, geolocation, and a
+category translation table. The entity model is described in
+[`data_dictionary.md`](data_dictionary.md). Raw files live in `data/raw/` and are
+gitignored.
+
+## Layer 2 — Pipeline (`pipeline/`)
+
+A reproducible, database-agnostic ETL run with `python -m pipeline.run`.
+
+| Module | Responsibility |
+|---|---|
+| `config.py` | Resolves repo-relative paths and reads `DATABASE_URL` (SQLite default, Postgres-ready). |
+| `extract.py` | Loads the nine raw CSVs. |
+| `transform.py` | Cleans and joins to one row per order, engineers features, and defines labels. |
+| `load.py` | Writes tables to the warehouse via SQLAlchemy (`if_exists="replace"`, so re-runs are idempotent). |
+| `run.py` | Orchestrates extract → transform → load and optionally writes CSV copies to `data/processed/`. |
+
+The transform step produces two tables:
+
+- **`orders_order_level`** — one cleaned, joined row per order, including
+  order-level aggregates of items/payments/reviews and derived delivery metrics
+  (actual vs. estimated delivery days, approval delay, customer↔seller haversine
+  shipping distance via geolocation centroids).
+- **`order_features`** — a model-ready feature frame keyed by `order_id`
+  (calendar parts, freight ratio, cross-state-shipment flag, physical-attribute
+  aggregates) joined with the label columns.
+
+**Database portability.** Everything goes through a SQLAlchemy engine built from
+`DATABASE_URL`. Unset, it defaults to a local SQLite file (`data/veridian.db`);
+pointing it at a Postgres URL targets a managed warehouse instead, with no code
+change.
+
+**Labels.** Three targets are defined in `transform.add_labels`:
+
+- `is_late` — delivered after the customer's estimate (delay).
+- `low_review` — review score ≤ 2 (dissatisfaction).
+- `is_complaint` — a documented return/complaint *proxy* (the dataset has no
+  returns table): a 1-star review or an order that ended `canceled`/`unavailable`.
+
+## Layer 3 — Models (`models/`)
+
+`models/train.py` trains and evaluates the `delay` and `low_review` models;
+`models/features.py` is the single source of truth for each model's feature set.
+
+- Each model is an XGBoost classifier inside a scikit-learn `Pipeline` with a
+  `ColumnTransformer` (median imputation + passthrough for numerics; most-frequent
+  imputation + one-hot encoding for categoricals).
+- Data is split 64% train / 16% validation / 20% test, stratified. The decision
+  threshold is tuned for maximum F1 on the **validation** split only — never on
+  the test set.
+- Probabilities are isotonic-calibrated (`CalibratedClassifierCV`) for serving.
+- Each model is evaluated against a majority-class baseline; metrics, confusion
+  matrices, and SHAP importances are written to `reports/`.
+
+The **leakage boundary** is enforced in code through per-model feature lists: the
+`delay` model uses only features known at or shortly after purchase, while the
+`low_review` model additionally uses delivery-outcome features (legitimate,
+because the review is created after delivery). Methodology and held-out metrics
+are in [`MODEL_CARD.md`](MODEL_CARD.md).
+
+**Artifact contract.** For each model, training writes a calibrated pipeline
+(`{name}_model.joblib`) and a metadata JSON (`{name}_metadata.json`) to
+`models/artifacts/`. The metadata records the feature lists, base rate, ROC-AUC,
+the tuned decision threshold, and the calibration method — everything the serving
+layer needs to load and describe the model. The `.joblib` files are gitignored
+and regenerated by training; the metadata JSONs are committed.
+
+## Layer 4 — API (`api/`)
+
+A FastAPI application that serves one endpoint per model.
+
+| Module | Responsibility |
+|---|---|
+| `schemas.py` | Pydantic request/response models. Feature fields are optional (the pipeline imputes what's missing) and unknown fields are rejected. |
+| `registry.py` | Loads each `joblib` pipeline and its metadata once, and assembles a request payload into the single-row DataFrame the pipeline expects. |
+| `main.py` | App wiring, model loading at startup, and the endpoints. |
+
+| Endpoint | Returns |
+|---|---|
+| `GET /health` | Service status and the list of loaded models. |
+| `GET /models/{name}` | Model metadata: features, base rate, ROC-AUC, threshold, calibration. |
+| `POST /predict/delay` | Calibrated delay probability, tuned alert flag, risk bucket. |
+| `POST /predict/low-review` | Calibrated dissatisfaction probability, flag, risk bucket. |
+
+Each prediction response carries the calibrated probability, the model's tuned
+`decision_threshold`, a boolean `flag` (probability ≥ threshold), and a
+`risk_level` bucket (`low`/`medium`/`high`) for display. A few convenience inputs
+— such as `order_purchase_timestamp` — are expanded into the calendar and ratio
+features the model expects, so clients can send a partial order.
+
+The serving image (`Dockerfile`) installs only `requirements-api.txt` — the lean
+subset needed to load the pipeline and serve — runs as a non-root user, and
+includes a healthcheck.
+
+## Layer 5 — AI layer (planned)
+
+An LLM agent with retrieval and tool-calling over the warehouse and the
+prediction endpoints, with evaluations and guardrails. The prediction API is
+designed to be invoked as a tool by this layer.
+
+## Design decisions
+
+- **SQLite default, Postgres-ready.** All database access goes through a
+  `DATABASE_URL`, so moving to a managed warehouse is configuration, not a rewrite.
+- **Validation-tuned thresholds.** Tuning the operating threshold on validation
+  keeps the reported test metrics honest.
+- **Calibrated probabilities.** Isotonic calibration makes the API's outputs
+  usable as probabilities, not just rankings.
+- **Leakage boundary in code.** Per-model feature lists prevent the delay model
+  from ever seeing a delivery outcome.
+- **Slim serving image.** The API image excludes training-only dependencies
+  (Jupyter, matplotlib, SHAP, SQLAlchemy) and ships only what inference needs.

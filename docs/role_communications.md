@@ -1,17 +1,22 @@
-# Role-to-Role Communications (Handoff Contracts)
+# Role-to-Role Handoff Contracts
 
-Each handoff = an interface/contract: the next role only needs the previous role's *output*, not its internals. Clean contracts = swappable layers.
+Each handoff is an interface: the next discipline needs only the previous one's
+output, not its internals. Clean contracts keep the layers swappable.
 
-| # | From -> To | Hands off (the contract) |
+| # | From → To | Handoff (the contract) |
 |---|------------|--------------------------|
-| 1 | Product Owner -> Business Analyst | Product Vision/Charter + prioritized backlog (epics). The WHAT & WHY, in priority order. |
-| 2 | Business Analyst -> Data Analyst | Detailed functional + non-functional requirements, acceptance criteria, target/label definition. The spec + "done" criteria. |
-| 3 | Data Analyst -> Data Engineer | EDA findings, data dictionary, cleaned/joined dataset definition, feature candidates, target/proxy-label rule. What data + features + label to pipeline. |
-| 4 | Data Engineer -> Data Scientist | Reproducible ETL pipeline + analysis-ready feature table in Postgres. A clean, versioned feature set to model. |
-| 5 | Data Scientist/ML -> MLOps | Trained + validated model artifact, eval metrics (vs baseline), inference signature. A working model + how to call it. |
-| 6 | MLOps -> AI Engineer | Deployed model API (endpoint + Pydantic schema), monitored, in Docker. Model-as-a-tool the agent can invoke. |
-| 7 | AI Engineer -> Full-stack | AI/agent services API (copilot/RAG endpoints) + prediction endpoints. Backend services + schemas the UI binds to. |
-| 8 | Full-stack -> Deploy/DevOps | Web app + all services containerized. A deployable build -> live URL. |
+| 1 | Product → Business Analysis | Product vision/charter and prioritized backlog (epics) — the *what* and *why*, in priority order. |
+| 2 | Business Analysis → Data Analysis | Functional and non-functional requirements, acceptance criteria, and target/label definitions — the spec and "done" criteria. |
+| 3 | Data Analysis → Data Engineering | EDA findings, data dictionary, cleaned/joined dataset definition, feature candidates, and the target/proxy-label rule. |
+| 4 | Data Engineering → Data Science | A reproducible ETL pipeline and an analysis-ready feature table in the warehouse — a clean, versioned feature set to model. |
+| 5 | Data Science / ML → MLOps | A trained, validated model artifact, evaluation metrics (vs. baseline), and an inference signature — a working model and how to call it. |
+| 6 | MLOps → AI Engineering | A deployed, monitored, containerized model API (endpoint plus Pydantic schema) — the model as a tool the AI layer can invoke. |
+| 7 | AI Engineering → Full-stack | AI/agent service endpoints (copilot/RAG) plus the prediction endpoints — backend services and schemas the UI binds to. |
+| 8 | Full-stack → Deployment | The web app and all services containerized — a deployable build that yields a live URL. |
 
 ## Core principle
-The "communication" between roles is always a **defined artifact or API contract** — not a conversation. Upstream roles define *what* and *why*; downstream roles execute *how*. Each role consumes only the previous role's deliverable, which is why the layers stay decoupled and any one of them can be swapped or upgraded independently.
+
+The communication between disciplines is always a defined artifact or API
+contract, not a conversation. Upstream disciplines define *what* and *why*;
+downstream disciplines implement *how*. Each consumes only the previous
+deliverable, which keeps the layers decoupled and independently replaceable.

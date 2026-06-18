@@ -18,6 +18,10 @@ __pycache__/
 # Secrets / config
 .env
 
+# Internal tooling config (not part of the published project)
+CLAUDE.md
+.claude/
+
 # ML / experiment artifacts
 mlruns/
 models/artifacts/*.joblib
