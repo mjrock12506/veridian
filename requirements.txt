@@ -1,0 +1,7 @@
+# Veridian — Phase 1 (Data foundation & EDA) dependencies
+# Pinned to the versions installed/verified on 2026-06-17 (Python 3.14).
+pandas==3.0.3
+numpy==2.4.6
+matplotlib==3.11.0
+jupyter==1.1.1
+scikit-learn==1.9.0
