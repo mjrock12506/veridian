@@ -1,106 +1,181 @@
-# Night Run Report — Phase 1 (Data Foundation & EDA)
+# Night Run Report — Phases 2–4 (Data Engineering → ML → MLOps build)
 
-**Date:** 2026-06-17  •  **Branch:** `night-run`  •  **Scope:** Phase 1 only (Data Analyst). No later phase was started.
+**Date:** 2026-06-17 • **Branch:** `phase-2` • **Scope:** Phases 2, 3, and the
+**build-only** part of Phase 4. Stopped before Phase 5 (needs your Anthropic API
+key, per instructions). Phase 1 was completed in a prior run.
 
-## Status: ✅ Complete
+## Status: ✅ Phases 2–4 (build) complete — stopped at the Phase 5 boundary
 
-All Phase 1 objectives from `CLAUDE.md` are done, verified, and committed as
-incremental checkpoints.
-
----
-
-## What I built
-
-| Step | Output | Notes |
-|---|---|---|
-| 1. Scaffold | `data/`, `notebooks/`, `pipeline/`, `models/`, `api/`, `ai/`, `web/`, `docs/`, `tests/` + `.gitignore` | `.gitignore` excludes `data/raw/`, `data/processed/*`, `.venv/`, `.env`, ML artifacts. |
-| 2. Environment | `.venv/` (Python 3.14.5) + pinned `requirements.txt` | pandas 3.0.3, numpy 2.4.6, matplotlib 3.11.0, jupyter 1.1.1, scikit-learn 1.9.0 — all installed and verified to import. |
-| 3. Data check | Confirmed | All 9 Olist CSVs present in `data/raw/` (~9 incl. `archive.zip`). Did **not** need to abort. |
-| 4. EDA notebook | `notebooks/01_eda_olist.ipynb` (executed, outputs embedded) | Loads all CSVs, joins to a 99,441-row order-level table, profiles data quality, and renders both required charts. |
-| 5. Data dictionary | `docs/data_dictionary.md` | Every raw table + every column, the ER overview, and the derived order-level table. |
-
-**Derived artifact:** `data/processed/orders_order_level.csv` (one row per order)
-is written by the notebook for Phase 2. It is gitignored (not committed).
-
-**Charts** (embedded in the notebook; PNGs in `notebooks/figures/`, gitignored):
-- `delivery_actual_vs_estimated.png` — actual vs. estimated delivery scatter (with on-time parity line) + early/late histogram.
-- `review_score_distribution.png` — 1–5★ distribution + mean review score split by on-time vs. late.
+Every step ran its checks, fixed failures, and was committed as a checkpoint.
+**16/16 tests pass.** Two things need your input before later phases (see
+**What I need from you**): Docker isn't installed here, and raw data is tracked
+in git from Phase 1.
 
 ---
 
-## Key findings
+## Phase 2 — Data Engineer (ETL pipeline) ✅
 
-- **Clean join, no fan-out.** 99,441 orders → exactly 99,441 order-level rows
-  (asserted in the notebook). 96,478 are `delivered`.
-- **Estimates are heavily padded.** Median *actual* delivery ≈ **10.2 days** vs a
-  median *estimate* of ≈ **23.2 days**. Olist quotes conservatively, so most
-  orders arrive comfortably early.
-- **Late rate ≈ 8.1%** of delivered orders arrive after the customer's estimate.
-- **Lateness craters satisfaction** — the headline signal for Phase 3: mean
-  review score is **4.29 for on-time** orders but **2.57 for late** ones.
-- **Reviews skew positive** but bimodal: mean ≈ **4.09**; 57,008 five-star vs a
-  hard 11,363 one-star tail.
-- **Missingness is structural, not corruption:** ~3% of orders lack a delivery
-  date (undelivered/canceled); ~0.8% have no review; review comment text is
-  ~58.7% null. No negative delivery durations or impossible numeric ranges found.
+A reproducible, DB-agnostic ETL in `pipeline/`, runnable with one command and
+idempotent.
+
+| File | Role |
+|---|---|
+| `pipeline/config.py` | Paths + `DATABASE_URL` (SQLite default, Postgres-ready). |
+| `pipeline/extract.py` | Reads the 9 raw Olist CSVs. |
+| `pipeline/transform.py` | Cleans, joins, engineers features, defines labels. |
+| `pipeline/load.py` | Writes tables via SQLAlchemy (`if_exists="replace"` → idempotent). |
+| `pipeline/run.py` | `python -m pipeline.run` orchestrates the whole thing. |
+
+- **DB-agnostic:** defaults to a local `data/veridian.db` (SQLite) but switches
+  to Postgres just by setting `DATABASE_URL` in `.env` — no code change.
+- **Two warehouse tables:** `orders_order_level` (99,441 rows × 36 cols, one
+  cleaned row per order) and `order_features` (99,441 × 28, model-ready
+  features + labels).
+- **New features beyond Phase 1:** customer↔seller **haversine shipping
+  distance** (the geolocation table deferred in Phase 1, aggregated to one
+  lat/lng per ZIP prefix), product weight/volume aggregates, approval delay,
+  calendar parts, freight ratio, cross-state-shipment flag, modal seller state.
+- **Labels defined:**
+  - `is_late` — delivered after the customer's estimate (**8.1%** of delivered).
+  - `low_review` — review score ≤ 2 (**14.7%**; dissatisfaction).
+  - `is_complaint` — return/complaint **proxy** (Olist has no returns table):
+    1-star review **or** order ended `canceled`/`unavailable` (**11.8%**).
+- **Idempotent + fast:** full run ≈ 11s; re-running rebuilds tables from scratch.
+- **Tests:** `tests/test_pipeline.py` — 6 tests (synthetic fixtures: no
+  order fan-out, label logic, haversine, idempotent load). Pass.
+
+Run it: `python -m pipeline.run`
+
+---
+
+## Phase 3 — Data Scientist / ML (models) ✅
+
+`models/train.py` trains, calibrates, and **honestly** evaluates two models;
+`models/features.py` pins the leakage-safe feature sets.
+
+**Method (honesty-first):**
+- 64% train / 16% validation / 20% test, stratified. The decision threshold is
+  tuned on **validation** (max-F1), never on the test set.
+- XGBoost in an sklearn preprocessing pipeline (median/most-frequent impute +
+  one-hot). Probabilities **isotonic-calibrated** for serving.
+- Compared against a **majority-class naive baseline**.
+- **Leakage control:** the delay model uses *only* order-time features (no
+  delivery outcome). The low-review model is framed as *post-delivery* (the
+  review happens after delivery), so it may use delivery-outcome features —
+  documented, not leakage.
+
+**Real held-out metrics (no inflation):**
+
+| Model | ROC-AUC | PR-AUC (prevalence) | Brier (cal. / uncal.) | Tuned thr | P / R / F1 | Baseline acc |
+|---|---|---|---|---|---|---|
+| **delay** | **0.785** | 0.295 (0.081) | 0.066 / 0.156 | 0.153 | 0.28 / 0.48 / 0.35 | 0.919 |
+| **low_review** | **0.764** | 0.486 (0.128) | 0.085 / 0.155 | 0.241 | 0.56 / 0.42 / 0.48 | 0.872 |
+
+Reading these honestly: both models **clearly beat random** (ROC-AUC ≈ 0.78/0.76
+vs 0.50; PR-AUC ≈ 3.6× / 3.8× the no-skill prevalence line). On heavily
+imbalanced data the default-0.5 operating point has low recall, so the API uses
+the validation-tuned threshold. Calibration roughly halved Brier score.
+
+**SHAP (delay model)** — top drivers are intuitive: `estimated_delivery_days`,
+purchase month (seasonality), `customer_seller_distance_km`, São Paulo origin,
+approval delay, cross-state shipment, freight. See `reports/shap_delay.png`.
+
+**Artifacts & reports:**
+- `models/artifacts/{delay,low_review}_model.joblib` (calibrated) +
+  `_metadata.json`. The `.joblib` files are **gitignored** (3 MB each); regenerate
+  with `python -m models.train`. The metadata JSONs are committed.
+- `reports/`: `model_report.md`, `metrics_{delay,low_review}.json`,
+  `confusion_matrix_*.png`, `shap_delay.{png,json}`.
+- **MLflow:** intentionally **not used** — mlflow 3.x pins `pandas<3`, which
+  would downgrade the Phase 1/2 pandas 3.0 stack. Per your guidance ("only if it
+  runs without extra setup; otherwise save metrics to a file"), metrics are
+  written to `reports/`. Easy to add later if we move to pandas 2.x.
+- **Tests:** `tests/test_models.py` — artifacts load, score in [0,1], beat the
+  baseline. Pass.
+
+Run it: `python -m models.train`
+
+---
+
+## Phase 4 — MLOps (serving, BUILD ONLY — not deployed) ✅
+
+FastAPI app in `api/`, one endpoint per prediction service.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /health` | status + loaded models |
+| `GET /models/{name}` | model card (features, ROC-AUC, threshold) |
+| `POST /predict/delay` | calibrated delay probability + alert flag + risk level |
+| `POST /predict/low-review` | calibrated dissatisfaction probability + flag |
+
+- **Pydantic schemas** (`api/schemas.py`) — every feature optional; extra fields
+  rejected (422). Convenience inputs (e.g. `order_purchase_timestamp`) are
+  expanded into the calendar/ratio features the model expects; anything missing
+  falls through to the pipeline imputers.
+- **Calibrated probability** in every response, with a `flag` at the model's
+  tuned threshold and a `risk_level` bucket.
+- **Verified locally with uvicorn** (`uvicorn api.main:app`): all endpoints
+  respond. Sanity examples — a distant, tight-estimate, cross-state boleto order
+  scored **0.26** delay risk (flagged); a padded-estimate same-state order
+  scored **0.002**; a 25-day-late delivery scored **0.77** low-review risk.
+- **Dockerfile** + `.dockerignore` + lean `requirements-api.txt` (serving deps
+  only; installs `libgomp1` for XGBoost; non-root user; healthcheck).
+- **Tests:** `tests/test_api.py` via FastAPI `TestClient` — 6 tests. Pass.
+- **Not deployed** (per instructions). See below re: Docker.
+
+Run it: `uvicorn api.main:app --reload` → docs at `/docs`.
 
 ---
 
 ## Decisions made (and why)
 
-- **Grain = one row per order.** Aggregated the many-per-order tables
-  (`order_items`, `order_payments`) and de-duplicated `reviews` (551 orders had a
-  duplicate; kept the latest-answered) *before* joining, so the order count can't
-  inflate.
-- **Aggregations chosen:** item counts + price/freight sums + modal category;
-  payment totals + max installments + highest-value payment type; single review
-  score per order. These are sensible order-level features for Phase 2.
-- **Timing metrics computed in days** from purchase; `is_late = delivered >
-  estimate`. Should be read on `delivered` orders only.
-- **Pinned dependency versions** in `requirements.txt` for reproducibility (env
-  built and verified on Python 3.14).
-- **`geolocation` deliberately not joined** in Phase 1 — it has many lat/lng
-  points per ZIP and needs aggregation; reserved for distance features in Phase 2.
-- **Source quirks preserved** for traceability: column misspellings
-  (`product_name_lenght`, `product_description_lenght`) left as-is.
+- **SQLite default, Postgres-ready.** Everything goes through SQLAlchemy and a
+  `DATABASE_URL`; switching to Supabase/Neon is a config change, not a rewrite.
+- **Validation-tuned thresholds, not test-tuned.** Keeps the reported test
+  metrics honest.
+- **Leakage boundary enforced in code** via per-model feature lists.
+- **Calibrated probabilities** (isotonic) so the API's numbers are usable as
+  real probabilities, not just rankings.
+- **Skipped MLflow** to protect the pandas 3.0 stack (see Phase 3).
+- **Slim serving image** — the API image excludes jupyter/matplotlib/shap/
+  sqlalchemy; only what's needed to load the joblib pipeline and serve.
+
+## Environment note
+- **`libomp` was installed via Homebrew** (`brew install libomp`) — XGBoost's
+  macOS wheel needs the OpenMP runtime. This is a local system dependency, not a
+  Python package; the Docker image installs the Linux equivalent (`libgomp1`).
+- Python 3.14.5 + pandas 3.0 confirmed working across all of ML + serving. The
+  only friction was two upstream-newness quirks I worked around: XGBoost needing
+  libomp, and SQLAlchemy column names (`quoted_name`) not being recognized by
+  scikit-learn 1.9 (normalized to plain `str`).
 
 ---
 
-## Verification performed
+## What I need from you next (blockers / decisions)
 
-- Notebook executed end-to-end via `nbconvert --execute`; **0 error outputs**, 2
-  charts embedded.
-- Row-count assertion (`len(df) == len(orders)`) passes.
-- Every figure cited in the dictionary/report was recomputed and confirmed
-  (551 duplicate reviews, 58.7% null comments, 96,096 unique customers, 610 null
-  categories).
-- All five core packages import successfully in the venv.
+1. **Phase 5 (AI layer) needs your `ANTHROPIC_API_KEY`.** I stopped here as
+   instructed and did not start it. Add the key to `.env` (see `.env.example`)
+   when you want me to proceed.
+2. **Docker build not verified — Docker isn't installed on this machine.** The
+   `Dockerfile` is written and the app is verified under uvicorn, but I couldn't
+   run `docker build`. Install Docker Desktop if you want me to build/run the
+   image and confirm the container serves.
+3. **Raw data is committed to git (from Phase 1).** `data/raw/*.csv` (~150 MB)
+   and `data/raw/archive.zip` (~45 MB) are tracked despite `.gitignore` —
+   CLAUDE.md says never commit raw data dumps. I untracked the 36 MB processed
+   CSV this run, but did **not** rewrite history or `git rm --cached` the raw
+   files (potentially destructive / your call). Tell me if you want them purged
+   (and whether to rewrite history to drop them from past commits).
+4. **Stack confirmation (FYI, not blocking).** Python 3.14 + pandas 3.0 works
+   end-to-end. If you'd still prefer a more battle-tested combo for deployment,
+   flag it and I'll re-pin.
 
----
+## Commits this run (on `phase-2`)
+1. Phase 2 — reproducible ETL pipeline (CSVs → SQLite via SQLAlchemy)
+2. Phase 3 — train + honestly evaluate delay and low-review models
+3. Phase 4 — FastAPI serving + Dockerfile (build/test only)
 
-## Needs your review
-
-1. **Two untracked scratch files remain** — `notebooks/_eda_dev.py` and
-   `notebooks/_build_nb.py` (used to develop/generate the notebook). I could not
-   delete them: `rm` is blocked by this session's permission policy. They are
-   **not committed** (untracked). Safe to delete manually: `rm notebooks/_eda_dev.py notebooks/_build_nb.py`.
-2. **Python 3.14 + pandas 3.0** — this is a very new stack. Everything works, but
-   if you prefer a more battle-tested combo (e.g. Python 3.11 + pandas 2.x) for
-   the later ML/serving phases, flag it now and I'll re-pin.
-3. **`archive.zip` in `data/raw/`** (~45 MB) is the original Kaggle download
-   alongside the extracted CSVs. It's gitignored; delete if not needed.
-4. **Branch** — work is on `night-run` with 4 checkpoint commits. Not pushed and
-   no PR opened (per CLAUDE.md, I stayed on the feature branch and stopped).
-
----
-
-## Commits this run (on `night-run`)
-
-1. scaffold repo folders, `.gitignore`, pinned `requirements.txt`
-2. executed EDA notebook (join, profile, delivery & review charts)
-3. full data dictionary (all 9 raw tables + order-level table)
-4. this report
-
-## Suggested next step (Phase 2 — do NOT start without your go-ahead)
-Promote the order-level table into a real ETL into Postgres + a feature table,
-including the geolocation distance features deferred here.
+## Suggested next step (do NOT start without your go-ahead)
+Phase 5 — the LLM agent / RAG / tool-calling layer, which needs your Anthropic
+API key. Or, if you'd rather harden what's built: install Docker so I can verify
+the image, and decide on the raw-data-in-git cleanup.

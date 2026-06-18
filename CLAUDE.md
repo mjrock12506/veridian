@@ -51,8 +51,11 @@ An end-to-end web app that predicts which e-commerce orders will go wrong (late 
 - tests/
 
 ## Commands (fill in as built)
-- Install:      pip install -r requirements.txt
-- Run API:      uvicorn api.main:app --reload
+- Install:      pip install -r requirements.txt   (XGBoost on macOS also needs `brew install libomp`)
+- Run ETL:      python -m pipeline.run            (Phase 2 — builds the SQLite warehouse; set DATABASE_URL for Postgres)
+- Train models: python -m models.train            (Phase 3 — trains/evaluates, writes models/artifacts/ + reports/)
+- Run API:      uvicorn api.main:app --reload      (Phase 4 — docs at /docs)
+- Build image:  docker build -t veridian-api .     (Phase 4 — needs models/artifacts/ present)
 - Tests:        pytest
 - Lint/format:  ruff check . && black .
 
