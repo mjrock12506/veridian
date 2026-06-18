@@ -1,7 +1,31 @@
-# Veridian — Phase 1 (Data foundation & EDA) dependencies
-# Pinned to the versions installed/verified on 2026-06-17 (Python 3.14).
+# Veridian — dependencies (Phases 1–4)
+# Pinned to versions installed/verified on Python 3.14.5 (2026-06).
+
+# --- Phase 1: data foundation & EDA ---
 pandas==3.0.3
 numpy==2.4.6
+scipy==1.17.1
 matplotlib==3.11.0
 jupyter==1.1.1
+
+# --- Phase 2: ETL pipeline ---
+SQLAlchemy==2.0.51
+python-dotenv==1.2.2
+
+# --- Phase 3: models ---
 scikit-learn==1.9.0
+xgboost==3.3.0
+shap==0.52.0
+joblib==1.5.3
+# NOTE: MLflow intentionally omitted — mlflow 3.x pins pandas<3, which would
+# downgrade the Phase 1/2 pandas 3.0 stack. Per project guidance, metrics are
+# written to reports/ instead. Revisit if the stack moves to pandas 2.x.
+
+# --- Phase 4: serving (FastAPI) ---
+fastapi==0.137.1
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+httpx==0.28.1
+
+# --- tooling ---
+pytest==9.1.0
