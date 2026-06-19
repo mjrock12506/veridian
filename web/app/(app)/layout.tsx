@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/app/sidebar";
 import { MobileNav } from "@/components/app/mobile-nav";
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -8,7 +9,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileNav />
         <main className="flex-1 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+          <div className="mx-auto w-full max-w-6xl">
+            <AuthGuard>{children}</AuthGuard>
+          </div>
         </main>
       </div>
     </div>

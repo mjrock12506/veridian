@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { SidebarNav } from "@/components/app/sidebar";
+import { UserMenu } from "@/components/auth/user-menu";
 
 export function MobileNav() {
   const [open, setOpen] = React.useState(false);
@@ -25,8 +26,9 @@ export function MobileNav() {
         </button>
       </div>
       {open && (
-        <div className="border-b border-border/60 bg-background/95 px-4 py-4 backdrop-blur-xl">
+        <div className="flex flex-col gap-4 border-b border-border/60 bg-background/95 px-4 py-4 backdrop-blur-xl">
           <SidebarNav onNavigate={() => setOpen(false)} />
+          <UserMenu />
         </div>
       )}
     </div>

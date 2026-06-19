@@ -53,7 +53,7 @@ export function Header() {
 
         <div className="hidden items-center gap-2 md:flex">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard">Sign in</Link>
+            <Link href="/login">Sign in</Link>
           </Button>
           <Button size="sm" asChild>
             <Link href="/dashboard">Open the app</Link>
