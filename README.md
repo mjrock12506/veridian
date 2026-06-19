@@ -31,9 +31,9 @@ held-out test set. Full methodology and honest metrics are in
 ## Architecture
 
 ```
-Olist CSVs ──▶ ETL pipeline ──▶ SQL warehouse ──▶ model training ──▶ artifacts ──▶ FastAPI ──▶ AI copilot
- (raw data)   (pipeline/)      (orders +         (models/)         (calibrated   (api/)       (ai/: LLM +
-                                features)                           pipelines)                 tools + RAG)
+Olist CSVs ─▶ ETL pipeline ─▶ SQL warehouse ─▶ model training ─▶ artifacts ─▶ FastAPI ─▶ AI copilot ─▶ Web app
+ (raw data)  (pipeline/)     (orders +        (models/)        (calibrated  (api/)     (ai/: LLM +    (web/:
+                             features)                          pipelines)              tools + RAG)   Next.js)
 ```
 
 1. **Data** — nine raw Olist CSVs are cleaned, joined, and reduced to one row
@@ -43,12 +43,16 @@ Olist CSVs ──▶ ETL pipeline ──▶ SQL warehouse ──▶ model traini
 3. **Models** (`models/`) — XGBoost classifiers in scikit-learn pipelines, with a
    strict leakage boundary, validation-tuned thresholds, isotonic calibration, and
    evaluation against a naive baseline.
-4. **API** (`api/`) — FastAPI serving one endpoint per model, returning a
-   calibrated probability, a tuned alert flag, and a risk bucket.
+4. **API** (`api/`) — FastAPI serving the prediction, dashboard, and copilot
+   endpoints, each returning a calibrated probability, a tuned alert flag, and a
+   risk bucket where applicable.
 5. **AI copilot** (`ai/`) — a provider-agnostic LLM (via LiteLLM) that answers
    natural-language questions, calling the prediction models as tools and
    grounding dataset answers in a local Chroma vector store. Exposed as `/ask`,
    with guardrails and an eval harness.
+6. **Web app** (`web/`) — a Next.js (App Router) + Tailwind frontend: a marketing
+   landing page and a working app (risk dashboard, order drill-down, AI copilot,
+   and a score-an-order form) that calls the FastAPI backend.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the layers connect and
 the contracts between them.
@@ -59,6 +63,7 @@ the contracts between them.
 - **ML:** scikit-learn, XGBoost, SHAP, joblib
 - **Serving:** FastAPI, Uvicorn, Pydantic, Docker
 - **AI copilot:** LiteLLM (provider-agnostic LLM), Chroma (local vector store / RAG)
+- **Web app:** Next.js (App Router), TypeScript, Tailwind, shadcn-style UI, Framer Motion, React Three Fiber, Recharts
 - **Tooling:** pytest, ruff, black
 
 Dependencies are pinned in `requirements.txt` (full stack) and
@@ -73,6 +78,7 @@ pipeline/     ETL: extract, transform, load, run
 models/       feature definitions, training, evaluation, artifacts
 api/          FastAPI app: schemas, model registry, endpoints
 ai/           copilot: LLM interface, prediction tools, RAG, eval harness
+web/          Next.js app: landing page + dashboard / copilot / score UI
 reports/      generated metrics, confusion matrices, SHAP, model + eval reports
 docs/         vision, data dictionary, architecture, model card
 tests/        pipeline, model, API, and AI tests
@@ -159,6 +165,27 @@ curl -s -X POST http://127.0.0.1:8000/ask \
       }'
 # -> {"answer":"...","model_results":[{"model":"delay","probability":...}],"sources":[...]}
 ```
+
+### Web app
+
+The frontend lives in `web/` and calls the FastAPI backend. Run the backend
+first, then the dev server:
+
+```bash
+# backend (from the repo root) — allow the web origin and serve
+uvicorn api.main:app --reload          # http://localhost:8000
+
+# frontend (in another terminal)
+cd web
+npm install
+cp .env.example .env.local             # NEXT_PUBLIC_API_URL=http://localhost:8000
+npm run dev                            # http://localhost:3000
+```
+
+The landing page is at `/`; the app is at `/dashboard`, `/copilot`, and
+`/score`. CORS allows `http://localhost:3000` by default (override with the
+backend's `CORS_ORIGINS`). The `/dashboard` endpoint reads the warehouse, so run
+`python -m pipeline.run` and `python -m models.train` first.
 
 ### Docker (serving image)
 

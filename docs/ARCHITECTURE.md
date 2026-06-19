@@ -5,15 +5,15 @@ the previous layer's output — a file, a table, or an API contract — so any l
 can be replaced or upgraded without rewriting the others.
 
 ```
-┌────────────┐   ┌────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐   ┌────────────┐
-│  Raw data  │──▶│   Pipeline │──▶│  SQL warehouse│──▶│   Models   │──▶│   API    │──▶│ AI copilot │
-│ Olist CSVs │   │ extract/   │   │ orders_order_ │   │ train +    │   │ FastAPI  │   │ LLM + tools│
-│ (9 files)  │   │ transform/ │   │ level +       │   │ evaluate + │   │ serving  │   │ + RAG      │
-│            │   │ load       │   │ order_features│   │ calibrate  │   │          │   │ (/ask)     │
-└────────────┘   └────────────┘   └──────────────┘   └────────────┘   └──────────┘   └────────────┘
-                                                            │                 ▲              │
-                                                            ▼                 │              │ calls models
-                                                   models/artifacts/  ────────┴──────────────┘ as tools
+┌────────────┐   ┌────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐   ┌────────────┐   ┌──────────┐
+│  Raw data  │─▶│   Pipeline │─▶│  SQL warehouse│─▶│   Models   │─▶│   API    │─▶│ AI copilot │   │ Web app  │
+│ Olist CSVs │   │ extract/   │   │ orders_order_ │   │ train +    │   │ FastAPI  │   │ LLM + tools│   │ Next.js  │
+│ (9 files)  │   │ transform/ │   │ level +       │   │ evaluate + │   │ serving  │   │ + RAG      │   │ (web/)   │
+│            │   │ load       │   │ order_features│   │ calibrate  │   │          │   │ (/ask)     │   │          │
+└────────────┘   └────────────┘   └──────────────┘   └────────────┘   └────┬─────┘   └────────────┘   └────┬─────┘
+                                                            │                 ▲                              │
+                                                            ▼                 │  HTTP (CORS) ────────────────┘
+                                                   models/artifacts/  ────────┘  the web app calls the API
                                                    (calibrated joblib
                                                     pipelines + metadata)
 ```
@@ -105,6 +105,13 @@ A FastAPI application that serves one endpoint per model.
 | `POST /predict/delay` | Calibrated delay probability, tuned alert flag, risk bucket. |
 | `POST /predict/low-review` | Calibrated dissatisfaction probability, flag, risk bucket. |
 | `POST /ask` | Copilot answer (Layer 5), with the model results and sources it used. |
+| `GET /dashboard` | Summary metrics, risk distribution, orders-over-time, and a scored order sample (cached). |
+| `GET /orders/{id}` | A single scored order's risks plus key drivers, for the web drill-down. |
+
+CORS is enabled (`CORSMiddleware`) for the web origin, configurable via
+`CORS_ORIGINS` (defaults to the Next.js dev server). The `/dashboard` and
+`/orders/{id}` handlers (`api/dashboard.py`) read the warehouse once, score a
+sample of delivered orders with both calibrated models, and cache the result.
 
 Each prediction response carries the calibrated probability, the model's tuned
 `decision_threshold`, a boolean `flag` (probability ≥ threshold), and a
@@ -166,6 +173,28 @@ cases. Infrastructure checks (retrieval grounding, real-model probability range)
 run unconditionally; LLM-dependent behaviour checks (tool invoked, refusal, no
 fabrication) run when a provider is available and are recorded as skipped
 otherwise, so results never overstate what was tested.
+
+## Layer 6 — Web app (`web/`)
+
+A Next.js (App Router) + TypeScript + Tailwind frontend, split into a marketing
+landing page and a working app, sharing one design system (deep navy base with a
+viridian accent, shadcn-style primitives, Framer Motion).
+
+| Area | Contents |
+|---|---|
+| Landing (`app/page.tsx`) | Hero with a React Three Fiber 3D globe, problem/how-it-works/benefits sections, header and footer. |
+| App shell (`app/(app)/layout.tsx`) | Sidebar + mobile nav wrapping the app routes. |
+| Dashboard (`/dashboard`) | Summary metric cards, risk-distribution and orders-over-time charts (Recharts), and a sortable orders table. |
+| Order detail (`/orders/[id]`) | A single order's calibrated risks, levels, and top drivers. |
+| Copilot (`/copilot`) | A chat UI over `/ask` rendering the answer, model results, and sources. |
+| Score (`/score`) | A form over `/predict/*` returning calibrated probabilities instantly. |
+
+**Backend contract.** All data access goes through a typed client (`lib/api.ts`)
+whose base URL is `NEXT_PUBLIC_API_URL`. The client centralises error handling
+(unreachable API, non-2xx, the copilot 503) so pages render loading, error, and
+empty states consistently. The app holds no business logic of its own — every
+number it shows comes from the API, which keeps the frontend a thin,
+swappable view over the same contracts the other layers expose.
 
 ## Design decisions
 
