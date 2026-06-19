@@ -5,8 +5,8 @@ late or followed by a dissatisfied review — so that operations teams can act o
 at-risk orders before the cost is locked in. It is built end to end on the
 [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
 (~100k orders, 2016–2018) and covers the full lifecycle: data engineering,
-model training and honest evaluation, calibrated probability serving, and a
-documented path to an applied-AI and web layer.
+model training and honest evaluation, calibrated probability serving, and an
+applied-AI copilot that answers questions grounded in the data and models.
 
 ## The problem
 
@@ -31,9 +31,9 @@ held-out test set. Full methodology and honest metrics are in
 ## Architecture
 
 ```
-Olist CSVs ──▶ ETL pipeline ──▶ SQL warehouse ──▶ model training ──▶ artifacts ──▶ FastAPI ──▶ (AI layer)
- (raw data)   (pipeline/)      (orders +         (models/)         (calibrated   (api/)        (planned)
-                                features)                           pipelines)
+Olist CSVs ──▶ ETL pipeline ──▶ SQL warehouse ──▶ model training ──▶ artifacts ──▶ FastAPI ──▶ AI copilot
+ (raw data)   (pipeline/)      (orders +         (models/)         (calibrated   (api/)       (ai/: LLM +
+                                features)                           pipelines)                 tools + RAG)
 ```
 
 1. **Data** — nine raw Olist CSVs are cleaned, joined, and reduced to one row
@@ -45,8 +45,10 @@ Olist CSVs ──▶ ETL pipeline ──▶ SQL warehouse ──▶ model traini
    evaluation against a naive baseline.
 4. **API** (`api/`) — FastAPI serving one endpoint per model, returning a
    calibrated probability, a tuned alert flag, and a risk bucket.
-5. **AI layer** (planned) — an LLM agent with retrieval and tool-calling over the
-   data and models, with evals and guardrails.
+5. **AI copilot** (`ai/`) — a provider-agnostic LLM (via LiteLLM) that answers
+   natural-language questions, calling the prediction models as tools and
+   grounding dataset answers in a local Chroma vector store. Exposed as `/ask`,
+   with guardrails and an eval harness.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for how the layers connect and
 the contracts between them.
@@ -56,6 +58,7 @@ the contracts between them.
 - **Data / pipeline:** pandas, NumPy, SQLAlchemy, SQLite / PostgreSQL
 - **ML:** scikit-learn, XGBoost, SHAP, joblib
 - **Serving:** FastAPI, Uvicorn, Pydantic, Docker
+- **AI copilot:** LiteLLM (provider-agnostic LLM), Chroma (local vector store / RAG)
 - **Tooling:** pytest, ruff, black
 
 Dependencies are pinned in `requirements.txt` (full stack) and
@@ -69,9 +72,10 @@ notebooks/    exploratory data analysis
 pipeline/     ETL: extract, transform, load, run
 models/       feature definitions, training, evaluation, artifacts
 api/          FastAPI app: schemas, model registry, endpoints
-reports/      generated metrics, confusion matrices, SHAP, model report
+ai/           copilot: LLM interface, prediction tools, RAG, eval harness
+reports/      generated metrics, confusion matrices, SHAP, model + eval reports
 docs/         vision, data dictionary, architecture, model card
-tests/        pipeline, model, and API tests
+tests/        pipeline, model, API, and AI tests
 ```
 
 ## Running it locally
@@ -100,13 +104,33 @@ python -m pipeline.run
 #    and metrics/plots/report to reports/
 python -m models.train
 
-# 3. Serve — API docs at http://127.0.0.1:8000/docs
+# 3. Build the copilot's retrieval index (data dictionary + model stats)
+python -m ai.index_knowledge
+
+# 4. Serve — API docs at http://127.0.0.1:8000/docs (includes /ask)
 uvicorn api.main:app --reload
 ```
 
 To target Postgres instead of SQLite, set `DATABASE_URL` in `.env` to a
 SQLAlchemy URL (e.g. `postgresql+psycopg://user:pass@host:5432/dbname`); no code
 change is required.
+
+### Configuring the copilot LLM
+
+The copilot talks to the LLM through [LiteLLM](https://docs.litellm.ai), so the
+provider is a configuration choice. Set the model and its key in `.env`:
+
+```bash
+GEMINI_API_KEY=your-key-here          # default provider (Gemini free tier)
+# LLM_MODEL=gemini/gemini-2.5-flash    # override to switch providers, e.g.:
+#   groq/llama-3.3-70b-versatile  (GROQ_API_KEY)
+#   anthropic/claude-haiku-4-5    (ANTHROPIC_API_KEY)
+#   ollama/llama3                 (local, no key)
+```
+
+Switching providers is a one-line `LLM_MODEL` change — no code edits. If the
+configured provider is unavailable, `/ask` still returns retrieved sources and a
+clear message rather than failing.
 
 ### Example request
 
@@ -123,6 +147,19 @@ curl -s -X POST http://127.0.0.1:8000/predict/delay \
 # -> {"model":"delay","probability":...,"decision_threshold":0.1529,"flag":...,"risk_level":...}
 ```
 
+Ask the copilot a question, optionally with an order to score:
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/ask \
+  -H 'content-type: application/json' \
+  -d '{
+        "question": "What is the delay risk for this order, and how good is the model?",
+        "order": {"estimated_delivery_days": 8, "customer_seller_distance_km": 2000,
+                  "customer_state": "AM", "main_seller_state": "SP"}
+      }'
+# -> {"answer":"...","model_results":[{"model":"delay","probability":...}],"sources":[...]}
+```
+
 ### Docker (serving image)
 
 ```bash
@@ -131,10 +168,15 @@ docker run --rm -p 8000:8000 veridian-api
 curl localhost:8000/health
 ```
 
-### Tests, lint, and format
+The serving image installs only the prediction dependencies, so it serves
+`/predict` and `/health`. The copilot (`/ask`) needs the full `requirements.txt`
+and runs from the local app (`uvicorn api.main:app`).
+
+### Tests and evaluation
 
 ```bash
-pytest
+pytest                       # pipeline, model, API, and AI tests (LLM is mocked)
+python -m ai.eval.run_eval   # copilot behaviour eval -> reports/ai_eval_results.json
 ruff check . && black .
 ```
 

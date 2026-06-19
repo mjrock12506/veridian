@@ -5,15 +5,15 @@ the previous layer's output — a file, a table, or an API contract — so any l
 can be replaced or upgraded without rewriting the others.
 
 ```
-┌────────────┐   ┌────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐
-│  Raw data  │──▶│   Pipeline │──▶│  SQL warehouse│──▶│   Models   │──▶│   API    │
-│ Olist CSVs │   │ extract/   │   │ orders_order_ │   │ train +    │   │ FastAPI  │
-│ (9 files)  │   │ transform/ │   │ level +       │   │ evaluate + │   │ serving  │
-│            │   │ load       │   │ order_features│   │ calibrate  │   │          │
-└────────────┘   └────────────┘   └──────────────┘   └────────────┘   └──────────┘
-                                                            │                 ▲
-                                                            ▼                 │
-                                                   models/artifacts/  ────────┘
+┌────────────┐   ┌────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐   ┌────────────┐
+│  Raw data  │──▶│   Pipeline │──▶│  SQL warehouse│──▶│   Models   │──▶│   API    │──▶│ AI copilot │
+│ Olist CSVs │   │ extract/   │   │ orders_order_ │   │ train +    │   │ FastAPI  │   │ LLM + tools│
+│ (9 files)  │   │ transform/ │   │ level +       │   │ evaluate + │   │ serving  │   │ + RAG      │
+│            │   │ load       │   │ order_features│   │ calibrate  │   │          │   │ (/ask)     │
+└────────────┘   └────────────┘   └──────────────┘   └────────────┘   └──────────┘   └────────────┘
+                                                            │                 ▲              │
+                                                            ▼                 │              │ calls models
+                                                   models/artifacts/  ────────┴──────────────┘ as tools
                                                    (calibrated joblib
                                                     pipelines + metadata)
 ```
@@ -104,6 +104,7 @@ A FastAPI application that serves one endpoint per model.
 | `GET /models/{name}` | Model metadata: features, base rate, ROC-AUC, threshold, calibration. |
 | `POST /predict/delay` | Calibrated delay probability, tuned alert flag, risk bucket. |
 | `POST /predict/low-review` | Calibrated dissatisfaction probability, flag, risk bucket. |
+| `POST /ask` | Copilot answer (Layer 5), with the model results and sources it used. |
 
 Each prediction response carries the calibrated probability, the model's tuned
 `decision_threshold`, a boolean `flag` (probability ≥ threshold), and a
@@ -113,13 +114,58 @@ features the model expects, so clients can send a partial order.
 
 The serving image (`Dockerfile`) installs only `requirements-api.txt` — the lean
 subset needed to load the pipeline and serve — runs as a non-root user, and
-includes a healthcheck.
+includes a healthcheck. The copilot's dependencies are not in that subset, so
+`/ask` is served by the full local app and returns a clear 503 in the slim image.
 
-## Layer 5 — AI layer (planned)
+## Layer 5 — AI copilot (`ai/`)
 
-An LLM agent with retrieval and tool-calling over the warehouse and the
-prediction endpoints, with evaluations and guardrails. The prediction API is
-designed to be invoked as a tool by this layer.
+A retrieval-grounded, tool-using copilot that answers natural-language questions
+about the data and the model predictions.
+
+| Module | Responsibility |
+|---|---|
+| `config.py` | Reads `LLM_MODEL` and provider keys from the environment; central tuning (token caps, top-k). |
+| `llm.py` | The single LLM interface, built on LiteLLM, with rate-limit backoff and fast-fail on terminal quota/credit errors. |
+| `tools.py` | Advertises `predict_delay` / `predict_low_review` as function-calling tools and dispatches them through the Layer 4 registry. |
+| `knowledge.py` | Builds the grounded corpus from the data dictionary, model card, and metrics JSON. |
+| `rag.py` | Embeds the corpus into a local Chroma store and retrieves top-k passages. |
+| `copilot.py` | Orchestrates retrieve → LLM (with tools) → tool execution → grounded answer. |
+| `eval/` | A behaviour eval harness writing `reports/ai_eval_results.json`. |
+
+**Request flow for `/ask`:**
+
+1. Retrieve grounded passages for the question from the Chroma store.
+2. Call the LLM with the passages as context and the prediction tools advertised.
+3. If the model requests a tool, run the actual calibrated model (Layer 4),
+   thread the result back into the conversation, and let the model compose a
+   final answer.
+4. Return the answer plus the model results and sources used.
+
+**Provider-agnostic LLM.** LiteLLM is the only LLM touch point, so the provider
+is set by `LLM_MODEL` (e.g. `gemini/gemini-2.5-flash`, `groq/...`,
+`anthropic/...`, or a local `ollama/...`). Each provider reads its own key from
+the environment. The default targets a Google Gemini free-tier model.
+
+**Guardrails.** Enforced in the system prompt and the orchestration:
+
+- Risk numbers come only from tool calls (the calibrated models); the LLM is
+  instructed never to estimate a probability itself.
+- Dataset facts must come from the retrieved context; if the answer is not in
+  context or available via a tool, the copilot says it does not have the
+  information rather than inventing it.
+- Out-of-scope questions are declined.
+- An unavailable LLM degrades to a clear message (with retrieved sources still
+  returned), never a fabricated answer.
+
+**Retrieval grounding.** The corpus is derived entirely from in-repo artifacts,
+and statistic documents are regenerated from `reports/metrics_*.json` at index
+time, so every figure the copilot can cite traces back to a measured value.
+
+**Evaluation.** `python -m ai.eval.run_eval` runs question/expected-behaviour
+cases. Infrastructure checks (retrieval grounding, real-model probability range)
+run unconditionally; LLM-dependent behaviour checks (tool invoked, refusal, no
+fabrication) run when a provider is available and are recorded as skipped
+otherwise, so results never overstate what was tested.
 
 ## Design decisions
 
@@ -133,3 +179,9 @@ designed to be invoked as a tool by this layer.
   from ever seeing a delivery outcome.
 - **Slim serving image.** The API image excludes training-only dependencies
   (Jupyter, matplotlib, SHAP, SQLAlchemy) and ships only what inference needs.
+- **Provider-agnostic AI layer.** Routing every LLM call through LiteLLM makes
+  the provider a one-line configuration change and keeps the copilot portable
+  across hosted and local models.
+- **Grounding over recall.** The copilot cites retrieved figures and calls the
+  real models for predictions rather than relying on the LLM's parametric
+  memory, so its numbers are auditable.

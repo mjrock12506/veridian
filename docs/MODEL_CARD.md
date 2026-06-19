@@ -141,3 +141,16 @@ Baseline (predict majority class): accuracy 0.872, recall on positives 0.0.
 - The `is_complaint` proxy label defined in the pipeline is a documented
   approximation (the dataset has no returns table) and is not currently served as
   a model.
+
+## Consumption by the AI copilot
+
+Both models are exposed to the Phase 5 AI copilot (`ai/`) as function-calling
+tools (`predict_delay`, `predict_low_review`). When a user asks an order-specific
+risk question, the copilot calls the tool, which runs the same calibrated
+pipeline served at `/predict`, and reports the returned probability and alert
+flag. The copilot is instructed never to estimate a probability itself — every
+risk number it gives comes from the model, not the language model — so the
+figures remain calibrated and auditable. Dataset and metric questions are
+answered from a retrieval index built over this model card, the data dictionary,
+and `reports/metrics_*.json`, so cited statistics trace back to the measured
+values above.
