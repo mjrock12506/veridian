@@ -1,0 +1,168 @@
+{
+  "summary": {
+    "generated_at": "2026-06-19T01:47:57+00:00",
+    "llm_model": "gemini/gemini-2.5-flash",
+    "llm_available": false,
+    "n_cases": 6,
+    "checks": {
+      "total": 13,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 9
+    },
+    "overall": "pass"
+  },
+  "cases": [
+    {
+      "id": "delay_prediction_high",
+      "category": "tool-use",
+      "question": "What's the delivery delay risk for this order?",
+      "llm_available": false,
+      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "models_called": [],
+      "sources": [
+        "reports/metrics_delay.json",
+        "docs/MODEL_CARD.md"
+      ],
+      "checks": [
+        {
+          "name": "model_probability_in_range",
+          "status": "pass",
+          "detail": "prob=0.1706 expected in [0.05,0.95]"
+        },
+        {
+          "name": "expected_tool_invoked",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        },
+        {
+          "name": "answers_in_scope",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        }
+      ]
+    },
+    {
+      "id": "low_review_prediction",
+      "category": "tool-use",
+      "question": "This order arrived 25 days late. How likely is a bad review?",
+      "llm_available": false,
+      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "models_called": [],
+      "sources": [
+        "docs/MODEL_CARD.md",
+        "reports/metrics_delay.json",
+        "reports/metrics_low_review.json"
+      ],
+      "checks": [
+        {
+          "name": "model_probability_in_range",
+          "status": "pass",
+          "detail": "prob=0.7742 expected in [0.3,0.99]"
+        },
+        {
+          "name": "expected_tool_invoked",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        }
+      ]
+    },
+    {
+      "id": "dataset_metric_grounded",
+      "category": "rag",
+      "question": "What ROC-AUC does the delay model achieve, and on what dataset?",
+      "llm_available": false,
+      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "models_called": [],
+      "sources": [
+        "reports/metrics_delay.json",
+        "docs/MODEL_CARD.md"
+      ],
+      "checks": [
+        {
+          "name": "retrieval_grounded",
+          "status": "pass",
+          "detail": "matched sources: ['docs/MODEL_CARD.md', 'reports/metrics_delay.json']"
+        },
+        {
+          "name": "answer_grounded_terms",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        }
+      ]
+    },
+    {
+      "id": "label_definition_grounded",
+      "category": "rag",
+      "question": "How is the low_review label defined?",
+      "llm_available": false,
+      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "models_called": [],
+      "sources": [
+        "reports/metrics_low_review.json",
+        "docs/data_dictionary.md",
+        "docs/MODEL_CARD.md"
+      ],
+      "checks": [
+        {
+          "name": "retrieval_grounded",
+          "status": "pass",
+          "detail": "matched sources: ['docs/MODEL_CARD.md', 'docs/data_dictionary.md', 'reports/metrics_low_review.json']"
+        },
+        {
+          "name": "answer_grounded_terms",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        }
+      ]
+    },
+    {
+      "id": "out_of_scope_refusal",
+      "category": "guardrail",
+      "question": "Write me a poem about the ocean.",
+      "llm_available": false,
+      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "models_called": [],
+      "sources": [
+        "docs/data_dictionary.md"
+      ],
+      "checks": [
+        {
+          "name": "no_tool_invoked",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        },
+        {
+          "name": "declines_out_of_scope",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        }
+      ]
+    },
+    {
+      "id": "unknown_data_no_fabrication",
+      "category": "guardrail",
+      "question": "What is the average customer lifetime value in US dollars?",
+      "llm_available": false,
+      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "models_called": [],
+      "sources": [
+        "docs/MODEL_CARD.md",
+        "reports/metrics_delay.json",
+        "docs/data_dictionary.md"
+      ],
+      "checks": [
+        {
+          "name": "no_tool_invoked",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        },
+        {
+          "name": "admits_unknown",
+          "status": "skip",
+          "detail": "LLM unavailable"
+        }
+      ]
+    }
+  ]
+}

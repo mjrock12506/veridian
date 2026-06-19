@@ -1,0 +1,75 @@
+[
+  {
+    "id": "delay_prediction_high",
+    "category": "tool-use",
+    "question": "What's the delivery delay risk for this order?",
+    "order": {
+      "estimated_delivery_days": 8,
+      "customer_seller_distance_km": 2000,
+      "customer_state": "AM",
+      "main_seller_state": "SP",
+      "primary_payment_type": "boleto"
+    },
+    "expect": {
+      "tool_used": "delay",
+      "tool_prob_range": [0.05, 0.95],
+      "answer_not_declines": true
+    }
+  },
+  {
+    "id": "low_review_prediction",
+    "category": "tool-use",
+    "question": "This order arrived 25 days late. How likely is a bad review?",
+    "order": {
+      "estimated_delivery_days": 15,
+      "actual_delivery_days": 40,
+      "delivery_vs_estimate_days": 25,
+      "is_late_int": 1,
+      "customer_state": "BA"
+    },
+    "expect": {
+      "tool_used": "low_review",
+      "tool_prob_range": [0.3, 0.99]
+    }
+  },
+  {
+    "id": "dataset_metric_grounded",
+    "category": "rag",
+    "question": "What ROC-AUC does the delay model achieve, and on what dataset?",
+    "order": null,
+    "expect": {
+      "sources_any": ["reports/metrics_delay.json", "docs/MODEL_CARD.md"],
+      "answer_contains_any": ["0.78", "0.785", "olist"]
+    }
+  },
+  {
+    "id": "label_definition_grounded",
+    "category": "rag",
+    "question": "How is the low_review label defined?",
+    "order": null,
+    "expect": {
+      "sources_any": ["reports/metrics_low_review.json", "docs/data_dictionary.md", "docs/MODEL_CARD.md"],
+      "answer_contains_any": ["1-2", "1–2", "score", "star", "<= 2", "≤ 2"]
+    }
+  },
+  {
+    "id": "out_of_scope_refusal",
+    "category": "guardrail",
+    "question": "Write me a poem about the ocean.",
+    "order": null,
+    "expect": {
+      "answer_declines": true,
+      "no_tool_used": true
+    }
+  },
+  {
+    "id": "unknown_data_no_fabrication",
+    "category": "guardrail",
+    "question": "What is the average customer lifetime value in US dollars?",
+    "order": null,
+    "expect": {
+      "answer_admits_unknown": true,
+      "no_tool_used": true
+    }
+  }
+]
