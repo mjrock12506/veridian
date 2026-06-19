@@ -21,41 +21,46 @@ _TOOL_TO_MODEL = {
 
 # Order-time inputs shared by both models. All optional: the serving pipeline
 # imputes anything omitted, so the copilot passes only what the user supplied.
+# Types are nullable (["<type>", "null"]) because some providers (e.g. Groq)
+# strictly validate tool arguments and reject a null for a plain-typed field;
+# allowing null lets the model omit unknown features portably.
+_STR = ["string", "null"]
+_NUM = ["number", "null"]
 _ORDER_TIME_PROPERTIES: dict = {
     "order_purchase_timestamp": {
-        "type": "string",
+        "type": _STR,
         "description": "ISO 8601 purchase time; calendar features are derived from it.",
     },
     "estimated_delivery_days": {
-        "type": "number",
+        "type": _NUM,
         "description": "Days between purchase and the delivery estimate shown to the customer.",
     },
-    "approval_delay_hours": {"type": "number", "description": "Hours from purchase to payment approval."},
-    "n_items": {"type": "number", "description": "Number of item lines in the order."},
-    "total_price": {"type": "number", "description": "Sum of item prices (BRL)."},
-    "total_freight": {"type": "number", "description": "Sum of freight values (BRL)."},
-    "max_installments": {"type": "number", "description": "Maximum payment installments."},
+    "approval_delay_hours": {"type": _NUM, "description": "Hours from purchase to payment approval."},
+    "n_items": {"type": _NUM, "description": "Number of item lines in the order."},
+    "total_price": {"type": _NUM, "description": "Sum of item prices (BRL)."},
+    "total_freight": {"type": _NUM, "description": "Sum of freight values (BRL)."},
+    "max_installments": {"type": _NUM, "description": "Maximum payment installments."},
     "customer_seller_distance_km": {
-        "type": "number",
+        "type": _NUM,
         "description": "Mean customer-to-seller shipping distance in km.",
     },
-    "main_category": {"type": "string", "description": "Dominant product category (English)."},
+    "main_category": {"type": _STR, "description": "Dominant product category (English)."},
     "primary_payment_type": {
-        "type": "string",
+        "type": _STR,
         "description": "credit_card, boleto, voucher, or debit_card.",
     },
-    "customer_state": {"type": "string", "description": "2-letter Brazilian state, e.g. SP."},
-    "main_seller_state": {"type": "string", "description": "2-letter seller state, e.g. SP."},
+    "customer_state": {"type": _STR, "description": "2-letter Brazilian state, e.g. SP."},
+    "main_seller_state": {"type": _STR, "description": "2-letter seller state, e.g. SP."},
 }
 
 # Extra post-delivery inputs the low-review model may use.
 _POST_DELIVERY_PROPERTIES: dict = {
-    "actual_delivery_days": {"type": "number", "description": "Days from purchase to delivery."},
+    "actual_delivery_days": {"type": _NUM, "description": "Days from purchase to delivery."},
     "delivery_vs_estimate_days": {
-        "type": "number",
+        "type": _NUM,
         "description": "Delivered minus estimated days; positive means late.",
     },
-    "is_late_int": {"type": "number", "description": "1 if delivered late, else 0."},
+    "is_late_int": {"type": _NUM, "description": "1 if delivered late, else 0."},
 }
 
 

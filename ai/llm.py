@@ -32,10 +32,19 @@ class LLMUnavailable(RuntimeError):
 
 
 def _retry_delay_seconds(err: Exception, default: float) -> float:
-    """Parse a provider-suggested retry delay from an error, if present."""
-    m = re.search(r"retry in (\d+(?:\.\d+)?)s", str(err), re.IGNORECASE)
+    """Parse a provider-suggested retry delay from an error, if present.
+
+    Different providers phrase this differently ("retry in 5s", "try again in
+    7.5s", "retryDelay: 33s"), so match the common forms and honour the hint up
+    to a sane ceiling rather than guessing.
+    """
+    m = re.search(
+        r"(?:retry in|try again in|retry after|retrydelay\"?:?\s*\"?)\s*(\d+(?:\.\d+)?)\s*s",
+        str(err),
+        re.IGNORECASE,
+    )
     if m:
-        return min(float(m.group(1)), 30.0)
+        return min(float(m.group(1)) + 0.5, 60.0)
     return default
 
 
@@ -85,6 +94,11 @@ def chat(
             time.sleep(_retry_delay_seconds(err, default=2.0 * (attempt + 1)))
         except litellm.AuthenticationError as err:
             raise LLMUnavailable(f"Authentication failed: {err}") from err
+        except litellm.BadRequestError as err:
+            # e.g. a provider that strictly validates tool-call arguments and
+            # rejects a malformed generation. Surface gracefully rather than
+            # crashing the request.
+            raise LLMUnavailable(f"Request rejected by provider: {err}") from err
 
     raise LLMUnavailable(
         f"LLM unavailable after {config.LLM_MAX_RETRIES} attempts: {last_err}"

@@ -181,7 +181,9 @@ otherwise, so results never overstate what was tested.
   (Jupyter, matplotlib, SHAP, SQLAlchemy) and ships only what inference needs.
 - **Provider-agnostic AI layer.** Routing every LLM call through LiteLLM makes
   the provider a one-line configuration change and keeps the copilot portable
-  across hosted and local models.
+  across hosted and local models. Tool parameters are declared with nullable
+  types so providers that strictly validate function arguments (e.g. Groq)
+  accept omitted features, and provider request errors degrade gracefully.
 - **Grounding over recall.** The copilot cites retrieved figures and calls the
   real models for predictions rather than relying on the LLM's parametric
   memory, so its numbers are auditable.

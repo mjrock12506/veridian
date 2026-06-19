@@ -1,14 +1,14 @@
 {
   "summary": {
-    "generated_at": "2026-06-19T01:47:57+00:00",
-    "llm_model": "gemini/gemini-2.5-flash",
-    "llm_available": false,
+    "generated_at": "2026-06-19T02:23:42+00:00",
+    "llm_model": "groq/llama-3.3-70b-versatile",
+    "llm_available": true,
     "n_cases": 6,
     "checks": {
       "total": 13,
-      "passed": 4,
+      "passed": 13,
       "failed": 0,
-      "skipped": 9
+      "skipped": 0
     },
     "overall": "pass"
   },
@@ -17,9 +17,11 @@
       "id": "delay_prediction_high",
       "category": "tool-use",
       "question": "What's the delivery delay risk for this order?",
-      "llm_available": false,
-      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
-      "models_called": [],
+      "llm_available": true,
+      "answer_preview": "The calibrated probability of delivery delay for this order is 0.1706, which is above the decision threshold of 0.1529. This indicates a medium risk level for delivery delay.",
+      "models_called": [
+        "delay"
+      ],
       "sources": [
         "reports/metrics_delay.json",
         "docs/MODEL_CARD.md"
@@ -32,13 +34,13 @@
         },
         {
           "name": "expected_tool_invoked",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": "called: ['delay']"
         },
         {
           "name": "answers_in_scope",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": ""
         }
       ]
     },
@@ -46,9 +48,11 @@
       "id": "low_review_prediction",
       "category": "tool-use",
       "question": "This order arrived 25 days late. How likely is a bad review?",
-      "llm_available": false,
-      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
-      "models_called": [],
+      "llm_available": true,
+      "answer_preview": "The probability of a bad review is 0.7742, which is above the decision threshold of 0.2407, indicating a high risk of a bad review.",
+      "models_called": [
+        "low_review"
+      ],
       "sources": [
         "docs/MODEL_CARD.md",
         "reports/metrics_delay.json",
@@ -62,8 +66,8 @@
         },
         {
           "name": "expected_tool_invoked",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": "called: ['low_review']"
         }
       ]
     },
@@ -71,8 +75,8 @@
       "id": "dataset_metric_grounded",
       "category": "rag",
       "question": "What ROC-AUC does the delay model achieve, and on what dataset?",
-      "llm_available": false,
-      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "llm_available": true,
+      "answer_preview": "The delay model achieves an ROC-AUC of 0.7845 on the held-out test set, which consists of 19,294 orders.",
       "models_called": [],
       "sources": [
         "reports/metrics_delay.json",
@@ -86,8 +90,8 @@
         },
         {
           "name": "answer_grounded_terms",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": "expected one of: 0.78, 0.785, olist"
         }
       ]
     },
@@ -95,8 +99,8 @@
       "id": "label_definition_grounded",
       "category": "rag",
       "question": "How is the low_review label defined?",
-      "llm_available": false,
-      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "llm_available": true,
+      "answer_preview": "The low_review label is defined as a review score of 2 or less (1-2 stars) in the `olist_order_reviews_dataset.csv` file, which is the target signal for the satisfaction model.",
       "models_called": [],
       "sources": [
         "reports/metrics_low_review.json",
@@ -111,8 +115,8 @@
         },
         {
           "name": "answer_grounded_terms",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": "expected one of: 1-2, 1\u20132, score, star, <= 2, \u2264 2"
         }
       ]
     },
@@ -120,8 +124,8 @@
       "id": "out_of_scope_refusal",
       "category": "guardrail",
       "question": "Write me a poem about the ocean.",
-      "llm_available": false,
-      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "llm_available": true,
+      "answer_preview": "I'm not able to help with that. I can provide information and answer questions about the Veridian dataset, its features and labels, the prediction models, or how to act on an order's risk. If you have",
       "models_called": [],
       "sources": [
         "docs/data_dictionary.md"
@@ -129,13 +133,13 @@
       "checks": [
         {
           "name": "no_tool_invoked",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": "called: []"
         },
         {
           "name": "declines_out_of_scope",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": ""
         }
       ]
     },
@@ -143,8 +147,8 @@
       "id": "unknown_data_no_fabrication",
       "category": "guardrail",
       "question": "What is the average customer lifetime value in US dollars?",
-      "llm_available": false,
-      "answer_preview": "The language model is currently unavailable, so I can't generate an answer right now. The prediction models are still callable directly via the /predict endpoints.",
+      "llm_available": true,
+      "answer_preview": "I'm not able to provide that information as it's not available in the provided context. I can help with questions related to the Veridian dataset, its features and labels, the prediction models, or ho",
       "models_called": [],
       "sources": [
         "docs/MODEL_CARD.md",
@@ -154,13 +158,13 @@
       "checks": [
         {
           "name": "no_tool_invoked",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": "called: []"
         },
         {
           "name": "admits_unknown",
-          "status": "skip",
-          "detail": "LLM unavailable"
+          "status": "pass",
+          "detail": ""
         }
       ]
     }

@@ -21,10 +21,16 @@ out-of-scope* — are checked deterministically below. Two classes of check:
 from __future__ import annotations
 
 import json
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ai import config, copilot, tools
+
+# Optional pause between cases — gentle on free-tier per-minute token limits.
+# Defaults to 0 (no pause) so test/CI runs stay fast.
+CASE_DELAY_SECONDS = float(os.environ.get("EVAL_CASE_DELAY_SECONDS", "0"))
 
 CASES_PATH = Path(__file__).resolve().parent / "cases.json"
 RESULTS_PATH = config.ROOT / "reports" / "ai_eval_results.json"
@@ -126,7 +132,11 @@ def evaluate_case(case: dict) -> dict:
 
 def main() -> int:
     cases = json.loads(CASES_PATH.read_text())
-    case_results = [evaluate_case(c) for c in cases]
+    case_results = []
+    for i, case in enumerate(cases):
+        if i and CASE_DELAY_SECONDS:
+            time.sleep(CASE_DELAY_SECONDS)
+        case_results.append(evaluate_case(case))
 
     all_checks = [chk for cr in case_results for chk in cr["checks"]]
     passed = sum(c["status"] == "pass" for c in all_checks)
