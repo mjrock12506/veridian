@@ -11,9 +11,11 @@ Docs: http://127.0.0.1:8000/docs
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from api import registry
 from api.schemas import (
@@ -28,6 +30,11 @@ from api.schemas import (
 
 _registry = registry.Registry()
 
+# Allowed browser origins for the web app. Defaults to the Next.js dev server;
+# override (comma-separated) with CORS_ORIGINS for other hosts.
+_DEFAULT_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",") if o.strip()]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +48,13 @@ app = FastAPI(
                 "for e-commerce orders (Olist). Probabilities are calibrated.",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -117,3 +131,31 @@ def ask(request: AskRequest) -> AskResponse:
 
     result = copilot.answer(request.question, order=request.order)
     return AskResponse(**result.to_dict())
+
+
+@app.get("/dashboard")
+def dashboard() -> dict:
+    """Summary metrics, risk distribution, orders-over-time, and a scored sample
+    of delivered orders for the web dashboard. Computed once and cached."""
+    from api import dashboard as dash
+
+    try:
+        return dash.get_dashboard(_registry)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Warehouse database not found. Run `python -m pipeline.run` first.",
+        ) from exc
+    except Exception as exc:  # surface a clear error rather than a 500 stack
+        raise HTTPException(status_code=503, detail=f"Dashboard data unavailable: {exc}") from exc
+
+
+@app.get("/orders/{order_id}")
+def order_detail(order_id: str) -> dict:
+    """Drill-down for a single scored order: risks plus key drivers."""
+    from api import dashboard as dash
+
+    record = dash.get_order(_registry, order_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Order '{order_id}' not in the scored sample.")
+    return record
