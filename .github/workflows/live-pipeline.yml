@@ -1,0 +1,151 @@
+# Phase 7 — live pipeline & reports.
+#
+# On a daily schedule (and on demand) this:
+#   1. Restores the warehouse + replay cursor + raw data + model artifacts
+#      from the GitHub Actions cache (so state carries across runs).
+#   2. Runs the ETL INCREMENTALLY — ingesting only the next slice of Olist
+#      orders, which simulates a stream of "new data" arriving each run.
+#   3. Ensures the scoring models exist (trains them once if absent).
+#   4. Generates a risk digest (counts + top at-risk orders), uploads it as a
+#      build artifact, and optionally emails it.
+#
+# Nothing here contains secrets. Data access and email are driven entirely by
+# repository secrets/variables (see docs/DEPLOYMENT.md); when they are absent
+# the affected step degrades with a clear message instead of leaking anything.
+
+name: live-pipeline
+
+on:
+  schedule:
+    # 06:17 UTC daily (offset from the hour to avoid the cron stampede).
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: "Orders to ingest this run"
+        required: false
+        default: "2000"
+      reset:
+        description: "Restart the replay from the first order"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never let two scheduled runs mutate the cached warehouse at once.
+  group: live-pipeline
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      # The warehouse target. Defaults to the cached SQLite file; set a
+      # DATABASE_URL secret to write to managed Postgres instead.
+      DATABASE_URL: ${{ secrets.DATABASE_URL || 'sqlite:///data/veridian.db' }}
+      BATCH_SIZE: ${{ github.event.inputs.batch_size || '2000' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: System libs (OpenMP for XGBoost)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libgomp1
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # --- Persisted state across runs (warehouse + replay cursor) ----------- #
+      # Unique key per run with a restore-key prefix => restore the latest, then
+      # save a fresh entry at job end. This is the supported pattern for caches
+      # whose contents change every run.
+      - name: Restore warehouse + replay state
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/veridian.db
+            data/state
+          key: veridian-warehouse-${{ github.run_id }}
+          restore-keys: |
+            veridian-warehouse-
+
+      # --- Raw Olist data (immutable; populated once, then cached) ----------- #
+      - name: Cache raw Olist data
+        id: rawcache
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: olist-raw-v1
+
+      - name: Acquire raw data if missing
+        if: steps.rawcache.outputs.cache-hit != 'true'
+        env:
+          OLIST_DATA_URL: ${{ secrets.OLIST_DATA_URL }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          mkdir -p data/raw
+          if [ -n "${OLIST_DATA_URL}" ]; then
+            echo "Downloading dataset zip from OLIST_DATA_URL ..."
+            curl -fsSL "${OLIST_DATA_URL}" -o /tmp/olist.zip
+            unzip -o -q /tmp/olist.zip -d data/raw
+          elif [ -n "${KAGGLE_USERNAME}" ] && [ -n "${KAGGLE_KEY}" ]; then
+            echo "Downloading dataset from Kaggle ..."
+            pip install --quiet kaggle
+            kaggle datasets download -d olistbr/brazilian-ecommerce -p data/raw --unzip
+          else
+            echo "::error::No raw data and no data source configured."
+            echo "Set the OLIST_DATA_URL secret (a zip of the Olist CSVs) or the"
+            echo "KAGGLE_USERNAME / KAGGLE_KEY secrets. See docs/DEPLOYMENT.md."
+            exit 1
+          fi
+          echo "Raw files:" && ls -1 data/raw | head
+
+      # --- Trained model artifacts (cache; train once if absent) ------------- #
+      - name: Cache model artifacts
+        id: modelcache
+        uses: actions/cache@v4
+        with:
+          path: models/artifacts
+          key: veridian-models-v1
+
+      # --- ETL: incremental replay ------------------------------------------ #
+      - name: Run incremental ETL
+        run: |
+          RESET_FLAG=""
+          if [ "${{ github.event.inputs.reset }}" = "true" ]; then RESET_FLAG="--reset"; fi
+          python -m pipeline.run --incremental --batch-size "${BATCH_SIZE}" ${RESET_FLAG} --no-csv
+
+      - name: Train scoring models if missing
+        if: steps.modelcache.outputs.cache-hit != 'true'
+        # Non-fatal: if training fails the report still runs (observed-only).
+        continue-on-error: true
+        run: python -m models.train
+
+      # --- Reports / alerts -------------------------------------------------- #
+      - name: Generate risk digest (+ optional email)
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_STARTTLS: ${{ secrets.SMTP_STARTTLS }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+        run: python -m pipeline.report --email --stdout
+
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: risk-digest
+          path: reports/digests/latest.*
+          if-no-files-found: warn
