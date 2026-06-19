@@ -17,6 +17,8 @@ from fastapi import FastAPI, HTTPException
 
 from api import registry
 from api.schemas import (
+    AskRequest,
+    AskResponse,
     HealthResponse,
     LowReviewFeatures,
     ModelInfo,
@@ -93,3 +95,25 @@ def predict_delay(features: OrderFeatures) -> PredictionResponse:
 def predict_low_review(features: LowReviewFeatures) -> PredictionResponse:
     """Probability that the customer leaves a low (1–2★) review."""
     return _predict("low_review", features.model_dump())
+
+
+@app.post("/ask", response_model=AskResponse)
+def ask(request: AskRequest) -> AskResponse:
+    """Ask the AI copilot a grounded question about the data or model predictions.
+
+    The copilot retrieves context, calls the prediction models as tools when a
+    question is order-specific, and returns a grounded answer plus any model
+    results it used. The AI dependencies (litellm, chromadb) are imported lazily
+    so the slim serving image still serves the /predict endpoints without them.
+    """
+    try:
+        from ai import copilot
+    except ImportError as exc:  # pragma: no cover - only when AI deps absent
+        raise HTTPException(
+            status_code=503,
+            detail="AI copilot dependencies are not installed in this deployment. "
+            "Install the full requirements.txt to enable /ask.",
+        ) from exc
+
+    result = copilot.answer(request.question, order=request.order)
+    return AskResponse(**result.to_dict())

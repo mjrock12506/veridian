@@ -72,6 +72,31 @@ class PredictionResponse(BaseModel):
     risk_level: str = Field(description="low / medium / high bucket for display.")
 
 
+class AskRequest(BaseModel):
+    """A natural-language question for the copilot, with an optional order."""
+
+    model_config = {"extra": "forbid"}
+
+    question: str = Field(description="Natural-language question about the data or models.")
+    order: dict | None = Field(
+        default=None,
+        description="Optional order features the copilot may pass to a prediction tool.",
+    )
+
+
+class AskResponse(BaseModel):
+    answer: str = Field(description="Grounded natural-language answer.")
+    model_results: list[dict] = Field(
+        default_factory=list,
+        description="Any calibrated model outputs the copilot called while answering.",
+    )
+    sources: list[str] = Field(
+        default_factory=list, description="Knowledge sources retrieved for grounding."
+    )
+    llm_model: str = Field(description="The LLM the copilot used (provider/model).")
+    tokens: int = Field(default=0, description="Approximate total tokens used.")
+
+
 class HealthResponse(BaseModel):
     status: str
     models_loaded: list[str]
