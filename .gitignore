@@ -7,6 +7,12 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 
+# Incremental-replay cursor (Phase 7 live pipeline; regenerated each run)
+data/state/
+
+# Generated risk digests (Phase 7 reports/alerts; regenerated each run)
+reports/digests/
+
 # Python envs / caches
 venv/
 .venv/

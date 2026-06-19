@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pipeline import load, transform
+from pipeline import incremental, load, transform
 
 
 def _mini_raw() -> dict[str, pd.DataFrame]:
@@ -151,3 +151,36 @@ def test_idempotent_load(tmp_path):
     n1 = load.load_table(df, "t", engine)
     n2 = load.load_table(df, "t", engine)  # replace, not append
     assert n1 == n2 == 3
+
+
+# --- Phase 7: incremental replay + upsert ----------------------------------- #
+def test_incremental_select_advances_chronologically():
+    orders = pd.DataFrame({
+        "order_id": ["c", "a", "b", "d"],
+        # deliberately out of order; replay must sort by purchase timestamp
+        "order_purchase_timestamp": [
+            "2018-03-01", "2018-01-01", "2018-02-01", "2018-04-01",
+        ],
+    })
+    state = incremental.IngestState()
+    batch1, state = incremental.select_new_orders(orders, state, batch_size=2)
+    assert list(batch1["order_id"]) == ["a", "b"]  # earliest two
+    assert state.cursor == 2 and state.runs == 1
+    batch2, state = incremental.select_new_orders(orders, state, batch_size=2)
+    assert list(batch2["order_id"]) == ["c", "d"]
+    assert state.cursor == 4 and state.runs == 2
+    # Replay exhausted -> empty slice, cursor unchanged.
+    batch3, state = incremental.select_new_orders(orders, state, batch_size=2)
+    assert batch3.empty and state.cursor == 4
+    assert incremental.replay_remaining(orders, state) == 0
+
+
+def test_upsert_dedups_on_key(tmp_path):
+    engine = load.make_engine(f"sqlite:///{tmp_path / 'inc.db'}")
+    first = pd.DataFrame({"order_id": ["o1", "o2"], "v": [1, 2]})
+    second = pd.DataFrame({"order_id": ["o2", "o3"], "v": [99, 3]})  # o2 overlaps
+    n1 = load.upsert_table(first, "t", engine, key="order_id")
+    n2 = load.upsert_table(second, "t", engine, key="order_id")
+    assert n1 == 2 and n2 == 3  # o1,o2 then +o3 (o2 replaced, not duplicated)
+    got = pd.read_sql_table("t", engine).set_index("order_id")["v"].to_dict()
+    assert got == {"o1": 1, "o2": 99, "o3": 3}  # o2 updated to the new value

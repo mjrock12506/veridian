@@ -9,7 +9,7 @@ drift, no duplicate rows).
 from __future__ import annotations
 
 import pandas as pd
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 
 from . import config
@@ -49,6 +49,49 @@ def load_table(df: pd.DataFrame, table_name: str, engine: Engine) -> int:
     """Replace ``table_name`` with the rows of ``df``. Returns row count."""
     prepared = _prepare_for_sql(df)
     prepared.to_sql(table_name, engine, if_exists="replace", index=False, chunksize=5000)
+    with engine.connect() as conn:
+        n = conn.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar_one()
+    return int(n)
+
+
+def _table_exists(table_name: str, engine: Engine) -> bool:
+    return inspect(engine).has_table(table_name)
+
+
+def upsert_table(
+    df: pd.DataFrame, table_name: str, engine: Engine, key: str = "order_id"
+) -> int:
+    """Insert ``df``'s rows, replacing any existing rows with the same ``key``.
+
+    Backend-agnostic upsert used by the incremental pipeline: delete the
+    incoming keys (if the table already exists), then append. This keeps the
+    table free of duplicate orders when a batch is re-run, without relying on
+    dialect-specific ``ON CONFLICT`` syntax. Returns the table's total row
+    count after the load.
+    """
+    prepared = _prepare_for_sql(df)
+    if prepared.empty:
+        if _table_exists(table_name, engine):
+            with engine.connect() as conn:
+                return int(conn.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar_one())
+        return 0
+
+    if _table_exists(table_name, engine):
+        keys = [k for k in prepared[key].tolist() if k is not None]
+        with engine.begin() as conn:
+            # Delete in chunks to keep parameter counts within driver limits.
+            for i in range(0, len(keys), 500):
+                chunk = keys[i : i + 500]
+                params = {f"k{j}": v for j, v in enumerate(chunk)}
+                placeholders = ", ".join(f":{p}" for p in params)
+                conn.execute(
+                    text(f"DELETE FROM {table_name} WHERE {key} IN ({placeholders})"),
+                    params,
+                )
+        prepared.to_sql(table_name, engine, if_exists="append", index=False, chunksize=5000)
+    else:
+        prepared.to_sql(table_name, engine, if_exists="replace", index=False, chunksize=5000)
+
     with engine.connect() as conn:
         n = conn.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar_one()
     return int(n)
