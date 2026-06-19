@@ -20,6 +20,11 @@ from ai import config
 # Silently drop provider-unsupported params (e.g. a param Gemini ignores)
 # rather than erroring, so the same call works across providers.
 litellm.drop_params = True
+litellm.suppress_debug_info = True
+
+# Substrings that mark a non-retryable error (a free tier with no quota or a
+# depleted balance) — retrying these only wastes time, so we fail fast.
+_TERMINAL_MARKERS = ("limit: 0", "credits are depleted", "billing")
 
 
 class LLMUnavailable(RuntimeError):
@@ -69,6 +74,12 @@ def chat(
             return litellm.completion(**kwargs)
         except (litellm.RateLimitError, litellm.ServiceUnavailableError) as err:
             last_err = err
+            if any(marker in str(err).lower() for marker in _TERMINAL_MARKERS):
+                raise LLMUnavailable(
+                    "LLM quota/credit exhausted for the configured provider "
+                    f"({config.LLM_MODEL}). Set LLM_MODEL to another provider or "
+                    "add credits."
+                ) from err
             if attempt == config.LLM_MAX_RETRIES - 1:
                 break
             time.sleep(_retry_delay_seconds(err, default=2.0 * (attempt + 1)))
