@@ -1,13 +1,22 @@
-# Veridian prediction API — serving image (Phase 4, build only).
+# Veridian API — serving image (backend for Render / HF Spaces / any Docker host).
 #
 # Build:  docker build -t veridian-api .
-# Run:    docker run --rm -p 8000:8000 veridian-api
-# Then:   curl localhost:8000/health
+# Run:    docker run --rm -p 8000:8000 -e DATABASE_URL=... veridian-api
+# Then:   curl localhost:8000/health   ->  {"status":"ok",...}
 #
-# NOTE: the model artifacts in models/artifacts/ are gitignored and baked into
-# the image at build time. Run `python -m models.train` first to produce them.
+# Serves /health, /predict/*, /dashboard, /orders/* and /ask (the last returns
+# 503 unless the optional AI deps are installed — see docs/DEPLOYMENT.md).
+#
+# RUNTIME INPUTS (provided at deploy time, never baked secrets):
+#   - DATABASE_URL  : warehouse connection. SQLite by default; set a Postgres
+#                     URL in production. The warehouse must be populated by the
+#                     pipeline (python -m pipeline.run) before /dashboard works.
+#   - CORS_ORIGINS  : comma-separated allowed browser origins (the web app URL).
+#   - models/artifacts/*.joblib : trained models. These are gitignored, so run
+#                     `python -m models.train` so they exist in the build
+#                     context before building (see docs/DEPLOYMENT.md).
 
-FROM python:3.14-slim
+FROM python:3.12-slim
 
 # libgomp1 provides the OpenMP runtime that the XGBoost wheel links against.
 RUN apt-get update \
@@ -24,9 +33,12 @@ WORKDIR /app
 COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
-# App code + trained model artifacts.
+# App code. `pipeline` is imported by the dashboard for its config/DB URL;
+# reports/shap_delay.json powers the order drill-down's top drivers.
 COPY api/ ./api/
+COPY pipeline/ ./pipeline/
 COPY models/artifacts/ ./models/artifacts/
+COPY reports/shap_delay.json ./reports/shap_delay.json
 
 # Non-root runtime user.
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
@@ -36,6 +48,7 @@ EXPOSE 8000
 
 # Container-friendly healthcheck against the API.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)"
+    CMD python -c "import os,urllib.request,sys; p=os.environ.get('PORT','8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/health').status==200 else 1)"
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Honor the platform's $PORT (Render/HF set it); default to 8000 locally.
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

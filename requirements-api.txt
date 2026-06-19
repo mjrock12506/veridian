@@ -1,6 +1,9 @@
-# Veridian — serving-only dependencies for the API Docker image.
-# Lean subset of requirements.txt: no jupyter/matplotlib/shap/sqlalchemy.
-# Must load the joblib pipeline (sklearn + xgboost) and serve via FastAPI.
+# Veridian — serving dependencies for the API Docker image.
+# Lean subset of requirements.txt (no jupyter/matplotlib/shap): enough to load
+# the joblib pipelines (sklearn + xgboost), read the warehouse, and serve via
+# FastAPI. The AI copilot (/ask) deps (litellm, chromadb) are intentionally
+# omitted so the image stays small; install the full requirements.txt to enable
+# it (see docs/DEPLOYMENT.md). Without them /ask returns a clean 503.
 fastapi==0.137.1
 uvicorn[standard]==0.49.0
 pydantic==2.13.4
@@ -10,3 +13,10 @@ numpy==2.4.6
 scipy==1.17.1
 pandas==3.0.3
 joblib==1.5.3
+
+# Warehouse access for the /dashboard + /orders endpoints.
+SQLAlchemy==2.0.51
+python-dotenv==1.2.2
+# Postgres driver (production warehouse). SQLite needs no driver, so this is
+# only exercised when DATABASE_URL points at Postgres.
+psycopg[binary]==3.2.3

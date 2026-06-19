@@ -13,6 +13,9 @@ docs/
 web/
 ai/
 reports/
+# ...but keep the one report file the dashboard drill-down reads at runtime.
+!reports/shap_delay.json
 tests/
 *.db
 .env
+.github/

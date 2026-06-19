@@ -1,0 +1,37 @@
+# Render blueprint for the Veridian backend (FastAPI).
+# Deploy: push to GitHub, then in Render create a new Blueprint from this repo.
+# All secrets are entered in the Render dashboard (sync:false) — never here.
+#
+# Prerequisites (see docs/DEPLOYMENT.md):
+#   - The model artifacts (models/artifacts/*.joblib) must exist in the build
+#     context. They are gitignored; commit them to your deploy branch
+#     (`git add -f models/artifacts/*.joblib`) or train them in a build step.
+#   - A Postgres database, populated by the pipeline, reachable via DATABASE_URL.
+
+services:
+  - type: web
+    name: veridian-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      # Warehouse connection. Use Render's managed Postgres or any provider.
+      # Format: postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME
+      - key: DATABASE_URL
+        sync: false
+      # Allowed browser origins for CORS — set to your Vercel frontend URL(s),
+      # comma-separated (e.g. https://veridian.vercel.app).
+      - key: CORS_ORIGINS
+        sync: false
+      # --- Optional: AI copilot (/ask). Only used if the AI deps are added to
+      # the image; safe to leave unset (the endpoint then returns 503). ---
+      - key: LLM_MODEL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
