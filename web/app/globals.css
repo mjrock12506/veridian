@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Veridian design system — dark, technical, single sharp accent.
+  Deep navy base + "viridian" blue-green accent. Tokens are HSL so shadcn-style
+  primitives compose cleanly.
+*/
+@layer base {
+  :root {
+    --background: 222 56% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 220 42% 7%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 220 42% 7%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Sharp accent: viridian (blue-green) */
+    --primary: 162 86% 41%;
+    --primary-foreground: 222 56% 5%;
+
+    --secondary: 220 30% 13%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 220 28% 12%;
+    --muted-foreground: 215 20% 62%;
+
+    --accent: 162 86% 41%;
+    --accent-foreground: 222 56% 5%;
+
+    --border: 218 32% 16%;
+    --input: 218 32% 16%;
+    --ring: 162 86% 45%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse 70% 50% at 50% -8%, hsl(var(--primary) / 0.16), transparent 65%),
+      radial-gradient(ellipse 50% 40% at 88% 8%, hsl(190 90% 50% / 0.08), transparent 60%);
+    background-repeat: no-repeat;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  /* Eyebrow / kicker label — small technical caption above headings. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-border/70 bg-secondary/40 px-3 py-1 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  /* Reusable gradient text for the accent word in headlines. */
+  .text-gradient {
+    @apply bg-gradient-to-r from-viridian-300 via-viridian-400 to-viridian-200 bg-clip-text text-transparent;
+  }
+
+  /* Subtle hairline section divider. */
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+}
+
+@layer utilities {
+  .section {
+    @apply py-24 sm:py-28 lg:py-32;
+  }
+  /* Mask used to fade the 3D canvas / grid edges into the page. */
+  .mask-radial {
+    -webkit-mask-image: radial-gradient(ellipse 75% 75% at 50% 45%, #000 55%, transparent 100%);
+    mask-image: radial-gradient(ellipse 75% 75% at 50% 45%, #000 55%, transparent 100%);
+  }
+}
