@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -51,10 +52,12 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="ghost" size="sm">
-            Sign in
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard">Sign in</Link>
           </Button>
-          <Button size="sm">Get started</Button>
+          <Button size="sm" asChild>
+            <Link href="/dashboard">Open the app</Link>
+          </Button>
         </div>
 
         <button
@@ -81,10 +84,9 @@ export function Header() {
               </a>
             ))}
             <div className="mt-2 flex flex-col gap-2 px-1">
-              <Button variant="secondary" size="md">
-                Sign in
+              <Button size="md" asChild>
+                <Link href="/dashboard" onClick={() => setOpen(false)}>Open the app</Link>
               </Button>
-              <Button size="md">Get started</Button>
             </div>
           </nav>
         </div>

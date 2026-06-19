@@ -59,8 +59,8 @@ export function Hero() {
           className="mt-10 flex flex-col items-center gap-3 sm:flex-row"
         >
           <Button size="lg" asChild>
-            <a href="#how-it-works">
-              Start predicting
+            <a href="/dashboard">
+              Open the dashboard
               <ArrowRight className="size-4" />
             </a>
           </Button>

@@ -23,13 +23,13 @@ export function ClosingCta() {
               </p>
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button size="lg" asChild>
-                  <a href="#top">
-                    Start predicting
+                  <a href="/dashboard">
+                    Open the dashboard
                     <ArrowRight className="size-4" />
                   </a>
                 </Button>
                 <Button size="lg" variant="secondary" asChild>
-                  <a href="#how-it-works">Book a demo</a>
+                  <a href="#how-it-works">See how it works</a>
                 </Button>
               </div>
               <p className="mt-6 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground/60">
