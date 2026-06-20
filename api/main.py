@@ -31,7 +31,9 @@ from api.schemas import (
     PredictionResponse,
 )
 
-_registry = registry.Registry()
+# Shared, process-wide registry — the AI copilot's tools reuse this same
+# instance, so models are loaded once, not once per subsystem.
+_registry = registry.get_shared()
 
 # Allowed browser origins for the web app. Defaults to the Next.js dev server;
 # override (comma-separated) with CORS_ORIGINS for other hosts.

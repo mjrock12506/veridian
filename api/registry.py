@@ -38,7 +38,13 @@ class LoadedModel:
 
 
 class Registry:
-    """Lazily loads model artifacts; raises a clear error if not yet trained."""
+    """Loads model artifacts on demand (lazily, per model) and caches them.
+
+    A joblib pipeline is a few MB on disk but ~50 MB resident, so we never load a
+    model until something actually asks for it — this keeps startup light and the
+    serving footprint small on a 512 MB instance. Use :meth:`get` (lazy) for a
+    single model or :meth:`load` to warm everything up front.
+    """
 
     MODEL_NAMES = ("delay", "low_review")
 
@@ -46,28 +52,60 @@ class Registry:
         self.artifacts_dir = artifacts_dir
         self._models: dict[str, LoadedModel] = {}
 
+    def _artifact_paths(self, name: str) -> tuple[Path, Path]:
+        return (
+            self.artifacts_dir / f"{name}_model.joblib",
+            self.artifacts_dir / f"{name}_metadata.json",
+        )
+
+    def _load_one(self, name: str) -> bool:
+        """Load a single model into the cache; return False if its artifact is absent."""
+        model_path, meta_path = self._artifact_paths(name)
+        if not (model_path.exists() and meta_path.exists()):
+            return False
+        self._models[name] = LoadedModel(
+            name=name,
+            pipeline=joblib.load(model_path),
+            meta=json.loads(meta_path.read_text()),
+        )
+        return True
+
     def load(self) -> None:
+        """Eagerly warm every available model (optional; :meth:`get` is lazy)."""
         for name in self.MODEL_NAMES:
-            model_path = self.artifacts_dir / f"{name}_model.joblib"
-            meta_path = self.artifacts_dir / f"{name}_metadata.json"
-            if model_path.exists() and meta_path.exists():
-                self._models[name] = LoadedModel(
-                    name=name,
-                    pipeline=joblib.load(model_path),
-                    meta=json.loads(meta_path.read_text()),
-                )
+            if name not in self._models:
+                self._load_one(name)
 
     @property
     def loaded_names(self) -> list[str]:
+        """Models currently resident in memory."""
         return sorted(self._models)
 
+    @property
+    def available_names(self) -> list[str]:
+        """Models whose artifacts exist on disk (loadable, not necessarily loaded)."""
+        return [n for n in self.MODEL_NAMES if all(p.exists() for p in self._artifact_paths(n))]
+
     def get(self, name: str) -> LoadedModel:
-        if name not in self._models:
+        if name not in self._models and not self._load_one(name):
             raise KeyError(
-                f"Model '{name}' not loaded. Train it with `python -m models.train` "
+                f"Model '{name}' not available. Train it with `python -m models.train` "
                 "so the artifact exists in models/artifacts/."
             )
         return self._models[name]
+
+
+# Process-wide shared registry so the API, the dashboard, and the AI copilot's
+# tools all reuse ONE set of loaded models instead of each loading its own copy
+# (which would roughly double the resident model memory on /ask tool calls).
+_shared: Registry | None = None
+
+
+def get_shared() -> Registry:
+    global _shared
+    if _shared is None:
+        _shared = Registry()
+    return _shared
 
 
 def _derive(payload: dict) -> dict:

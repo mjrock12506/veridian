@@ -17,12 +17,19 @@ Guardrails are enforced through the system prompt and the orchestration:
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import asdict, dataclass, field
 
 from ai import config, llm, rag, tools
 
+logger = logging.getLogger("veridian.copilot")
+
 MAX_QUESTION_CHARS = 2000
-_PASSAGE_CHARS = 600  # truncate each retrieved chunk to keep token use modest
+# Per-passage and total caps on the grounding context. Generous enough that the
+# whole committed corpus (~18 KB) fits when RAG_BACKEND="direct" dumps it all in,
+# but still a hard ceiling on prompt size / token usage.
+_PASSAGE_CHARS = 2600
+_CONTEXT_CHAR_BUDGET = 20000
 
 SYSTEM_PROMPT = """You are the Veridian order-intelligence copilot. You help \
 e-commerce operations users understand the Olist order dataset and its risk \
@@ -61,8 +68,12 @@ def _context_block(passages: list[rag.Passage]) -> str:
     if not passages:
         return "CONTEXT: (no grounded passages retrieved)"
     lines = ["CONTEXT (grounded excerpts; cite these, do not invent figures):"]
+    used = 0
     for p in passages:
         snippet = p.text[:_PASSAGE_CHARS].strip()
+        used += len(snippet)
+        if used > _CONTEXT_CHAR_BUDGET and len(lines) > 1:
+            break  # keep the prompt bounded even if the corpus grows
         lines.append(f"- [source: {p.source}] {snippet}")
     return "\n".join(lines)
 
@@ -152,6 +163,10 @@ def answer(question: str, order: dict | None = None) -> CopilotResult:
         )
 
     except llm.LLMUnavailable as exc:
+        # Log the real exception (with traceback) before degrading gracefully, so
+        # the underlying cause — bad key, exhausted quota, provider outage — is
+        # visible in the logs even though the caller gets a soft fallback.
+        logger.exception("LLM unavailable (model=%s); returning degraded answer", config.LLM_MODEL)
         return CopilotResult(
             answer="The language model is currently unavailable, so I can't generate "
             "an answer right now. The prediction models are still callable directly "

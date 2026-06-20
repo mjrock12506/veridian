@@ -29,6 +29,11 @@ services:
       # the image; safe to leave unset (the endpoint then returns 503). ---
       - key: LLM_MODEL
         sync: false
+      # RAG grounding backend. Leave unset to use the lightweight default
+      # ("direct" — corpus loaded into the prompt, no vector DB / embedding
+      # model). Only set to "chroma" on a larger plan with the extra deps.
+      - key: RAG_BACKEND
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: ANTHROPIC_API_KEY

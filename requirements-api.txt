@@ -19,7 +19,10 @@ python-dotenv==1.2.2
 # only exercised when DATABASE_URL points at Postgres.
 psycopg[binary]==3.2.3
 
-# AI copilot (/ask): provider-agnostic LLM interface. Retrieval (RAG) uses a
-# committed TF-IDF corpus over scikit-learn (already above) — NOT chromadb or a
-# local embedding model — so the image stays within Render's 512 MB free tier.
+# AI copilot (/ask): provider-agnostic LLM interface. Retrieval (RAG) defaults
+# to the "direct" backend — the small knowledge corpus is loaded straight into
+# the prompt, with NO vector DB and NO local embedding model — so the image
+# stays within Render's 512 MB free tier. (The scalable RAG_BACKEND=chroma path
+# needs `chromadb` + `sentence-transformers`, which pull in torch; install those
+# only on a larger instance — deliberately omitted here.)
 litellm==1.83.7

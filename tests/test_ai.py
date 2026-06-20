@@ -3,7 +3,8 @@
 The LLM itself is mocked so these run deterministically and offline: the real
 value under test is the orchestration (tool dispatch, message threading,
 grounding, guardrails), not the provider. Tool and retrieval layers are
-exercised against the real models and vector store.
+exercised against the real models and the committed knowledge corpus (no vector
+DB or embedding model — see :mod:`ai.rag`).
 """
 
 from __future__ import annotations
@@ -63,21 +64,38 @@ def test_available_tools_lists_loaded_models():
 
 
 # --------------------------------------------------------------------------- #
-# RAG — real Chroma store
+# RAG — committed corpus, no vector DB / embedding model
 # --------------------------------------------------------------------------- #
 @pytest.fixture(scope="module")
 def indexed():
     try:
         rag.build_index()
-    except Exception as exc:  # pragma: no cover - chroma/embeddings unavailable
-        pytest.skip(f"vector store unavailable: {exc}")
+    except Exception as exc:  # pragma: no cover - source docs unavailable
+        pytest.skip(f"corpus unavailable: {exc}")
     return True
 
 
 def test_retrieval_is_grounded(indexed):
-    passages = rag.retrieve("What ROC-AUC does the delay model achieve?", k=3)
-    assert passages, "expected at least one retrieved passage"
-    assert any("metrics_delay" in p.source or "MODEL_CARD" in p.source for p in passages)
+    """The default ('direct') backend grounds the prompt in the whole corpus."""
+    passages = rag.retrieve("What ROC-AUC does the delay model achieve?")
+    assert passages, "expected at least one grounded passage"
+    sources = {p.source for p in passages}
+    assert any("metrics_delay" in s or "MODEL_CARD" in s for s in sources)
+
+
+def test_direct_backend_returns_whole_corpus(indexed, monkeypatch):
+    monkeypatch.setattr(rag.config, "RAG_BACKEND", "direct")
+    passages = rag.retrieve("anything")
+    # 'direct' ignores k and returns the entire (small) corpus for in-prompt use.
+    assert len(passages) == len(rag._load_corpus())
+
+
+def test_tfidf_backend_ranks_relevant_passage_first(indexed, monkeypatch):
+    monkeypatch.setattr(rag.config, "RAG_BACKEND", "tfidf")
+    passages = rag.retrieve("delay model ROC-AUC and PR-AUC", k=3)
+    assert passages, "expected ranked passages"
+    assert len(passages) <= 3
+    assert any("metrics_delay" in p.source for p in passages)
 
 
 # --------------------------------------------------------------------------- #

@@ -9,8 +9,6 @@ OpenAI-style function-calling format that LiteLLM normalises across providers.
 
 from __future__ import annotations
 
-from functools import lru_cache
-
 from api import registry
 
 # Tool name -> registered model name.
@@ -100,17 +98,17 @@ TOOL_SPECS: list[dict] = [
 ]
 
 
-@lru_cache(maxsize=1)
 def _registry() -> registry.Registry:
-    reg = registry.Registry()
-    reg.load()
-    return reg
+    # Reuse the API's process-wide registry so the copilot's tool calls share the
+    # already-loaded models instead of loading a second copy (memory: ~halved on
+    # /ask tool calls). Models load lazily on first use.
+    return registry.get_shared()
 
 
 def available_tools() -> list[str]:
-    """Tool names whose backing model artifact is actually loaded."""
-    loaded = set(_registry().loaded_names)
-    return [t for t, m in _TOOL_TO_MODEL.items() if m in loaded]
+    """Tool names whose backing model artifact exists on disk (loadable on demand)."""
+    available = set(_registry().available_names)
+    return [t for t, m in _TOOL_TO_MODEL.items() if m in available]
 
 
 def call_tool(name: str, arguments: dict) -> dict:

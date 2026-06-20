@@ -29,9 +29,12 @@ httpx==0.28.1
 
 # --- Phase 5: AI copilot (LLM + tools + RAG) ---
 litellm==1.83.7        # single provider-agnostic LLM interface
-# RAG retrieval uses a committed TF-IDF corpus over scikit-learn (Phase 3, above)
-# — deliberately no vector DB / local embedding model, so the serving image fits
-# Render's 512 MB free tier. Regenerate the corpus: python -m ai.index_knowledge
+# RAG defaults to the "direct" backend: the small committed corpus is loaded
+# straight into the prompt — deliberately no vector DB / local embedding model,
+# so the serving image fits Render's 512 MB free tier. A "tfidf" backend (uses
+# the scikit-learn above) and a scalable "chroma" backend (needs chromadb +
+# sentence-transformers, omitted here) are selectable via RAG_BACKEND.
+# Regenerate the corpus: python -m ai.index_knowledge
 
 # --- tooling ---
 pytest==9.1.0

@@ -37,15 +37,35 @@ LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "3"))
 # Cap on tool-call rounds before the copilot must answer (loop guard).
 LLM_MAX_TOOL_ROUNDS = int(os.environ.get("LLM_MAX_TOOL_ROUNDS", "3"))
 
-# --- Retrieval (lightweight TF-IDF over a committed corpus) ----------------- #
-# The knowledge corpus is precomputed offline and committed (regenerate with
-# `python -m ai.index_knowledge`), so retrieval needs no vector DB, no local
-# embedding model, and no embedding API at request time — it stays well within
-# Render's 512 MB free tier and works regardless of the LLM provider.
+# --- Retrieval (RAG) -------------------------------------------------------- #
+# The knowledge corpus is tiny (dataset dictionary + measured metrics, ~20 KB)
+# and committed at KNOWLEDGE_CORPUS_PATH (regenerate with
+# `python -m ai.index_knowledge`).
+#
+# RAG_BACKEND selects how a question is grounded against that corpus:
+#   "direct" (default, deployed) — no retrieval model at all. The whole small
+#       corpus is loaded straight into the LLM prompt as context. Zero vector
+#       DB, zero local embedding model, zero embedding API at request time:
+#       peak memory is a few hundred KB, so it fits Render's 512 MB free tier
+#       and works regardless of the LLM provider.
+#   "tfidf" — rank the corpus with an in-process scikit-learn TF-IDF index
+#       (still no vector DB / embedding model; useful once the corpus grows
+#       past what fits comfortably in a single prompt).
+#   "chroma" — scalable path: Chroma vector store + a local sentence-transformers
+#       embedding model. NOT installed by default (needs `chromadb` and
+#       `sentence-transformers`, which pull in torch and blow the 512 MB tier);
+#       enable only on a larger instance. Kept in the codebase as the
+#       grow-into option.
 KNOWLEDGE_CORPUS_PATH = Path(
     os.environ.get("KNOWLEDGE_CORPUS_PATH", str(ROOT / "ai" / "knowledge_corpus.json"))
 )
+RAG_BACKEND = os.environ.get("RAG_BACKEND", "direct").strip().lower()
 RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "4"))
+# Safety cap for the "direct" backend so an unexpectedly large corpus can't blow
+# up prompt size / token usage. The committed corpus (~18 KB) is well under this.
+RAG_DIRECT_CHAR_BUDGET = int(os.environ.get("RAG_DIRECT_CHAR_BUDGET", "24000"))
+# Local embedding model for the optional "chroma" backend only.
+RAG_EMBED_MODEL = os.environ.get("RAG_EMBED_MODEL", "all-MiniLM-L6-v2")
 
 
 def provider_key_present() -> bool:
