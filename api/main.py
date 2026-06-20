@@ -11,11 +11,14 @@ Docs: http://127.0.0.1:8000/docs
 
 from __future__ import annotations
 
+import logging
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+logger = logging.getLogger("veridian.api")
 
 from api import registry
 from api.schemas import (
@@ -142,11 +145,13 @@ def dashboard() -> dict:
     try:
         return dash.get_dashboard(_registry)
     except FileNotFoundError as exc:
+        logger.exception("Dashboard build failed: warehouse database not found")
         raise HTTPException(
             status_code=503,
             detail="Warehouse database not found. Run `python -m pipeline.run` first.",
         ) from exc
-    except Exception as exc:  # surface a clear error rather than a 500 stack
+    except Exception as exc:  # log the full traceback, return a clear 503 (never hang)
+        logger.exception("Dashboard build failed")
         raise HTTPException(status_code=503, detail=f"Dashboard data unavailable: {exc}") from exc
 
 
@@ -155,7 +160,11 @@ def order_detail(order_id: str) -> dict:
     """Drill-down for a single scored order: risks plus key drivers."""
     from api import dashboard as dash
 
-    record = dash.get_order(_registry, order_id)
+    try:
+        record = dash.get_order(_registry, order_id)
+    except Exception as exc:  # the first call may build the cache (same DB read)
+        logger.exception("Order detail build failed for %s", order_id)
+        raise HTTPException(status_code=503, detail=f"Order data unavailable: {exc}") from exc
     if record is None:
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not in the scored sample.")
     return record
