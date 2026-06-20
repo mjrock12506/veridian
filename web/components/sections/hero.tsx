@@ -1,97 +1,117 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, PackageSearch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Hero3D } from "@/components/three/hero-3d";
-
-const STATS = [
-  { value: "0.78", label: "ROC-AUC, held-out" },
-  { value: "~100k", label: "orders modeled" },
-  { value: "Calibrated", label: "probabilities" },
-];
+import { OrderRiskConsole } from "@/components/sections/order-risk-console";
 
 const ease = [0.16, 1, 0.3, 1] as const;
+
+const PROOF = [
+  { value: "~100k", label: "real orders scored" },
+  { value: "0.78", label: "ROC-AUC, held-out" },
+  { value: "2", label: "risk models + copilot" },
+];
 
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden">
-      {/* faint grid + 3D globe behind the content */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-faint bg-[size:48px_48px] opacity-[0.35] mask-radial" />
-      <Hero3D />
+      {/* faint grid wash behind the whole hero */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-faint bg-[size:56px_56px] opacity-[0.18] [mask-image:radial-gradient(ellipse_90%_70%_at_50%_0%,#000_30%,transparent_85%)]" />
 
-      <div className="container relative flex min-h-[92vh] flex-col items-center justify-center pt-28 pb-20 text-center">
+      <div className="container grid items-center gap-12 pb-20 pt-32 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:pb-28 lg:pt-36">
+        {/* left: the thesis */}
+        <div className="max-w-xl">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease }}
+            className="eyebrow"
+          >
+            <PackageSearch className="size-3.5 text-primary" />
+            Order risk intelligence
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.06 }}
+            className="mt-6 text-balance font-display text-display font-bold leading-[1.05] text-foreground"
+          >
+            Predict which e-commerce orders will{" "}
+            <span className="text-gradient">go wrong</span> — before they do — and
+            know how to fix them.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.14 }}
+            className="mt-6 max-w-lg text-pretty text-lg leading-relaxed text-muted-foreground"
+          >
+            Built for e-commerce operations and fulfillment teams. Veridian scores
+            every order the moment it&apos;s placed — flagging likely late
+            deliveries and unhappy customers while there&apos;s still time to act.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.22 }}
+            className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <Button size="lg" asChild>
+              <a href="/dashboard">
+                Explore the demo dashboard
+                <ArrowRight className="size-4" />
+              </a>
+            </Button>
+            <Button size="lg" variant="secondary" asChild>
+              <a href="#how-it-works">See how it works</a>
+            </Button>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.3 }}
+            className="mt-5 text-sm text-muted-foreground/80"
+          >
+            No sign-up — the demo runs on{" "}
+            <span className="text-foreground/80">~100k real Olist orders</span>.
+            Connecting your own store is on the roadmap.
+          </motion.p>
+
+          <motion.dl
+            initial={{ opacity: 0, y: 22 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease, delay: 0.38 }}
+            className="mt-10 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/40"
+          >
+            {PROOF.map((s) => (
+              <div key={s.label} className="bg-card/70 px-3 py-4 backdrop-blur">
+                <dt className="font-display text-xl font-semibold tabular-nums text-foreground">
+                  {s.value}
+                </dt>
+                <dd className="mt-1 text-[11px] leading-snug text-muted-foreground">{s.label}</dd>
+              </div>
+            ))}
+          </motion.dl>
+        </div>
+
+        {/* right: the signature live console */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease }}
-          className="eyebrow"
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.9, ease, delay: 0.2 }}
+          className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none"
         >
-          <Sparkles className="size-3.5 text-primary" />
-          Order Intelligence Platform
+          <OrderRiskConsole />
         </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease, delay: 0.06 }}
-          className="mt-6 max-w-4xl text-balance font-display text-display-lg font-bold text-foreground"
-        >
-          Stop losing money to <span className="text-gradient">bad orders.</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease, delay: 0.14 }}
-          className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl"
-        >
-          Veridian predicts which e-commerce orders will go wrong — late
-          deliveries, low reviews, complaints — and recommends what to do about
-          it. Custom ML models trained on the public Olist dataset, with an AI
-          copilot that explains every score in plain English.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease, delay: 0.22 }}
-          className="mt-10 flex flex-col items-center gap-3 sm:flex-row"
-        >
-          <Button size="lg" asChild>
-            <a href="/dashboard">
-              Try the demo
-              <ArrowRight className="size-4" />
-            </a>
-          </Button>
-          <Button size="lg" variant="secondary" asChild>
-            <a href="#explore">How to use the demo</a>
-          </Button>
-          <Button size="lg" variant="ghost" asChild>
-            <a href="/login">Sign in</a>
-          </Button>
-        </motion.div>
-
-        <motion.dl
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease, delay: 0.32 }}
-          className="mt-16 grid w-full max-w-lg grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border/60 bg-border/40"
-        >
-          {STATS.map((s) => (
-            <div key={s.label} className="bg-card/70 px-4 py-5 backdrop-blur">
-              <dt className="font-display text-xl font-semibold text-foreground sm:text-2xl">
-                {s.value}
-              </dt>
-              <dd className="mt-1 text-xs text-muted-foreground">{s.label}</dd>
-            </div>
-          ))}
-        </motion.dl>
       </div>
 
-      {/* fade into the next section */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-background" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-background" />
     </section>
   );
 }

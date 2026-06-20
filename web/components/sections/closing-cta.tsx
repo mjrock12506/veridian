@@ -24,12 +24,12 @@ export function ClosingCta() {
               <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button size="lg" asChild>
                   <a href="/dashboard">
-                    Try the demo
+                    Explore the demo dashboard
                     <ArrowRight className="size-4" />
                   </a>
                 </Button>
                 <Button size="lg" variant="secondary" asChild>
-                  <a href="#explore">How to use the demo</a>
+                  <a href="#explore">What you can do</a>
                 </Button>
               </div>
               <p className="mt-6 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground/60">

@@ -9,9 +9,9 @@ import { Logo } from "@/components/site/logo";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { label: "Problem", href: "#problem" },
   { label: "How it works", href: "#how-it-works" },
-  { label: "Try the demo", href: "#explore" },
+  { label: "What you can do", href: "#explore" },
+  { label: "Data", href: "#data" },
 ];
 
 export function Header() {

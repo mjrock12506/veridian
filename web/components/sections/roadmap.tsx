@@ -29,8 +29,9 @@ export function Roadmap() {
           </Reveal>
           <Reveal index={2}>
             <p className="mt-5 text-pretty text-lg leading-relaxed text-muted-foreground">
-              The four pages above are live and usable today. These are planned
-              extensions — not yet built, listed here for honesty about scope.
+              Everything you can try today is live. Beyond connecting your own
+              store, these are planned extensions — not yet built, listed here for
+              honesty about scope.
             </p>
           </Reveal>
         </div>

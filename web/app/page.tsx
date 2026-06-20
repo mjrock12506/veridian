@@ -4,6 +4,7 @@ import { Hero } from "@/components/sections/hero";
 import { Problem } from "@/components/sections/problem";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { DemoGuide } from "@/components/sections/demo-guide";
+import { DataNote } from "@/components/sections/data-note";
 import { Roadmap } from "@/components/sections/roadmap";
 import { ClosingCta } from "@/components/sections/closing-cta";
 
@@ -17,6 +18,7 @@ export default function Home() {
         <Problem />
         <HowItWorks />
         <DemoGuide />
+        <DataNote />
         <Roadmap />
         <ClosingCta />
       </main>
