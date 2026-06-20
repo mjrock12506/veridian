@@ -60,12 +60,15 @@ export function Hero() {
         >
           <Button size="lg" asChild>
             <a href="/dashboard">
-              Open the dashboard
+              View live demo
               <ArrowRight className="size-4" />
             </a>
           </Button>
           <Button size="lg" variant="secondary" asChild>
             <a href="#how-it-works">See how it works</a>
+          </Button>
+          <Button size="lg" variant="ghost" asChild>
+            <a href="/login">Sign in</a>
           </Button>
         </motion.div>
 

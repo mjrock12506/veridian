@@ -6,17 +6,19 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
 import {
   SUPABASE_ANON_KEY,
   SUPABASE_URL,
-  isProtectedPath,
   isSupabaseConfigured,
 } from "./config";
 
 /**
- * Per-request session refresh + route gating, run from the root middleware.
+ * Per-request session refresh, run from the root middleware.
  *
  * When Supabase is not configured this is a no-op pass-through, so the app
  * keeps working locally without auth. When configured, it refreshes the auth
- * cookies and redirects unauthenticated users away from protected routes to
- * the login page (preserving the intended destination via ?next=).
+ * cookies so logged-in users keep a valid session.
+ *
+ * Guest mode: the app is publicly browsable on the shared demo data, so this
+ * intentionally does NOT redirect unauthenticated users away from app routes.
+ * Auth stays fully available (see /login) for when we re-enable gating.
  */
 export async function updateSession(
   request: NextRequest
@@ -46,18 +48,9 @@ export async function updateSession(
 
   // IMPORTANT: getUser() validates the token with the Supabase Auth server and
   // must be called to keep the session fresh; do not insert logic between this
-  // and returning `response`.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-  if (!user && isProtectedPath(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
-  }
+  // and returning `response`. We intentionally do NOT gate on the result —
+  // guests browse the demo freely; this call only refreshes existing sessions.
+  await supabase.auth.getUser();
 
   return response;
 }

@@ -6,6 +6,7 @@ import { LayoutDashboard, MessagesSquare, SlidersHorizontal, ArrowUpRight, type 
 
 import { Logo } from "@/components/site/logo";
 import { UserMenu } from "@/components/auth/user-menu";
+import { GuestBadge } from "@/components/auth/guest-badge";
 import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
@@ -54,6 +55,7 @@ export function Sidebar() {
         <SidebarNav />
       </div>
       <div className="mt-auto flex flex-col gap-2">
+        <GuestBadge />
         <UserMenu />
         <Link
           href="/"
