@@ -1,9 +1,7 @@
 # Veridian — serving dependencies for the API Docker image.
 # Lean subset of requirements.txt (no jupyter/matplotlib/shap): enough to load
-# the joblib pipelines (sklearn + xgboost), read the warehouse, and serve via
-# FastAPI. The AI copilot (/ask) deps (litellm, chromadb) are intentionally
-# omitted so the image stays small; install the full requirements.txt to enable
-# it (see docs/DEPLOYMENT.md). Without them /ask returns a clean 503.
+# the joblib pipelines (sklearn + xgboost), read the warehouse, serve via
+# FastAPI, AND run the AI copilot (/ask).
 fastapi==0.137.1
 uvicorn[standard]==0.49.0
 pydantic==2.13.4
@@ -20,3 +18,8 @@ python-dotenv==1.2.2
 # Postgres driver (production warehouse). SQLite needs no driver, so this is
 # only exercised when DATABASE_URL points at Postgres.
 psycopg[binary]==3.2.3
+
+# AI copilot (/ask): provider-agnostic LLM interface. Retrieval (RAG) uses a
+# committed TF-IDF corpus over scikit-learn (already above) — NOT chromadb or a
+# local embedding model — so the image stays within Render's 512 MB free tier.
+litellm==1.83.7

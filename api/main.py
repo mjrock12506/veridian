@@ -118,21 +118,33 @@ def predict_low_review(features: LowReviewFeatures) -> PredictionResponse:
 def ask(request: AskRequest) -> AskResponse:
     """Ask the AI copilot a grounded question about the data or model predictions.
 
-    The copilot retrieves context, calls the prediction models as tools when a
-    question is order-specific, and returns a grounded answer plus any model
-    results it used. The AI dependencies (litellm, chromadb) are imported lazily
-    so the slim serving image still serves the /predict endpoints without them.
+    The copilot retrieves context (a committed TF-IDF corpus), calls the
+    prediction models as tools when a question is order-specific, and returns a
+    grounded answer plus any model results it used. The AI module is imported
+    lazily so a deployment without it still serves the other endpoints.
     """
     try:
         from ai import copilot
-    except ImportError as exc:  # pragma: no cover - only when AI deps absent
+    except Exception as exc:  # ImportError/ModuleNotFoundError -> AI layer/deps absent
+        # Log the real cause (module + message + traceback) so a deployment that
+        # is missing the ai/ package or its deps is diagnosable from the logs.
+        logger.exception("AI copilot import failed (missing module: %r)", getattr(exc, "name", None))
         raise HTTPException(
             status_code=503,
             detail="AI copilot dependencies are not installed in this deployment. "
-            "Install the full requirements.txt to enable /ask.",
+            "Install requirements-api.txt (which now includes the AI deps) to enable /ask.",
         ) from exc
 
-    result = copilot.answer(request.question, order=request.order)
+    try:
+        result = copilot.answer(request.question, order=request.order)
+    except Exception as exc:  # surface the real traceback; never hang silently
+        logger.exception("AI copilot failed while answering")
+        raise HTTPException(status_code=503, detail=f"Copilot error: {exc}") from exc
+
+    # The copilot returns a soft fallback (rather than raising) when the LLM is
+    # unavailable; log the underlying cause so it's visible even though we 200.
+    if result.error:
+        logger.warning("Copilot returned a degraded answer: %s", result.error)
     return AskResponse(**result.to_dict())
 
 

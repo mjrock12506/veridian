@@ -4,8 +4,9 @@
 # Run:    docker run --rm -p 8000:8000 -e DATABASE_URL=... veridian-api
 # Then:   curl localhost:8000/health   ->  {"status":"ok",...}
 #
-# Serves /health, /predict/*, /dashboard, /orders/* and /ask (the last returns
-# 503 unless the optional AI deps are installed — see docs/DEPLOYMENT.md).
+# Serves /health, /predict/*, /dashboard, /orders/* and /ask (the AI copilot).
+# /ask needs an LLM provider key at runtime (e.g. GROQ_API_KEY / GEMINI_API_KEY);
+# without one it returns a clean, graceful fallback. See docs/DEPLOYMENT.md.
 #
 # RUNTIME INPUTS (provided at deploy time, never baked secrets):
 #   - DATABASE_URL  : warehouse connection. SQLite by default; set a Postgres
@@ -34,8 +35,11 @@ COPY requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
 # App code. `pipeline` is imported by the dashboard for its config/DB URL;
+# `ai` powers the /ask copilot (its TF-IDF knowledge corpus is committed in the
+# package, so no docs/ or vector DB is needed at runtime);
 # reports/shap_delay.json powers the order drill-down's top drivers.
 COPY api/ ./api/
+COPY ai/ ./ai/
 COPY pipeline/ ./pipeline/
 COPY models/artifacts/ ./models/artifacts/
 COPY reports/shap_delay.json ./reports/shap_delay.json

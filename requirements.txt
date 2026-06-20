@@ -29,7 +29,9 @@ httpx==0.28.1
 
 # --- Phase 5: AI copilot (LLM + tools + RAG) ---
 litellm==1.83.7        # single provider-agnostic LLM interface
-chromadb==1.5.9        # local vector store for retrieval (RAG)
+# RAG retrieval uses a committed TF-IDF corpus over scikit-learn (Phase 3, above)
+# — deliberately no vector DB / local embedding model, so the serving image fits
+# Render's 512 MB free tier. Regenerate the corpus: python -m ai.index_knowledge
 
 # --- tooling ---
 pytest==9.1.0

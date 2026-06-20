@@ -11,10 +11,12 @@ data/
 notebooks/
 docs/
 web/
-ai/
 reports/
 # ...but keep the one report file the dashboard drill-down reads at runtime.
 !reports/shap_delay.json
+# Keep the ai/ package (copilot + committed TF-IDF corpus) in the image, but
+# drop the local vector-store cache (legacy, regenerated, never used at runtime).
+ai/.chroma/
 tests/
 *.db
 .env

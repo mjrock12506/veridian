@@ -37,9 +37,14 @@ LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "3"))
 # Cap on tool-call rounds before the copilot must answer (loop guard).
 LLM_MAX_TOOL_ROUNDS = int(os.environ.get("LLM_MAX_TOOL_ROUNDS", "3"))
 
-# --- Retrieval (Chroma) ---------------------------------------------------- #
-CHROMA_DIR = Path(os.environ.get("CHROMA_DIR", str(ROOT / "ai" / ".chroma")))
-CHROMA_COLLECTION = os.environ.get("CHROMA_COLLECTION", "veridian_knowledge")
+# --- Retrieval (lightweight TF-IDF over a committed corpus) ----------------- #
+# The knowledge corpus is precomputed offline and committed (regenerate with
+# `python -m ai.index_knowledge`), so retrieval needs no vector DB, no local
+# embedding model, and no embedding API at request time — it stays well within
+# Render's 512 MB free tier and works regardless of the LLM provider.
+KNOWLEDGE_CORPUS_PATH = Path(
+    os.environ.get("KNOWLEDGE_CORPUS_PATH", str(ROOT / "ai" / "knowledge_corpus.json"))
+)
 RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "4"))
 
 

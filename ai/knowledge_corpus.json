@@ -1,0 +1,117 @@
+[
+  {
+    "id": "docs/data_dictionary.md#0",
+    "text": "(preamble)\n# Veridian — Data Dictionary\n\nSource: **Olist Brazilian E-Commerce Public Dataset** (~100k orders placed on the\nOlist marketplace, 2016–2018). Nine raw CSVs in `data/raw/` (gitignored). This\ndocument describes every raw table and column, then the **order-level table**\nthat the Phase 1 EDA builds (`notebooks/01_eda_olist.ipynb`).\n\nAll timestamps are local Brazilian time, format `YYYY-MM-DD HH:MM:SS`. Currency\nis Brazilian Real (BRL). Primary keys are 32-char hashes unless noted.\n\n---",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#1",
+    "text": "Entity-relationship overview\n```\ncustomers ─1─┐\n             └─< orders >─1── reviews (≈1 per order)\n                   │\n                   ├─< order_items >── products ── category_translation\n                   │        └────────── sellers\n                   └─< order_payments\ngeolocation: lookup by zip_code_prefix for customers & sellers\n```\n\n- `orders` is the central fact table — one row per order.\n- `order_items`, `order_payments` are **many-per-order**; `reviews` is\n  **~one-per-order** (551 orders have a duplicate review id).\n- `products`, `sellers`, `customers`, `geolocation` are dimension/lookup tables.\n\n---",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#2",
+    "text": "1. `olist_orders_dataset.csv` — orders (fact)\n99,441 rows × 8 cols. Grain: one row per **order**. PK: `order_id`.\n\n| Column | Type | Description |\n|---|---|---|\n| `order_id` | str | Unique order id. **PK.** |\n| `customer_id` | str | FK → `customers.customer_id`. One id per order (a per-order key, *not* a person). |\n| `order_status` | str | Order state: `delivered` (96,478), `shipped`, `canceled`, `unavailable`, `invoiced`, `processing`, `created`, `approved`. |\n| `order_purchase_timestamp` | datetime | When the order was placed. The \"clock start\" for all delivery durations. |\n| `order_approved_at` | datetime | Payment approval time. Missing for 160 orders. |\n| `order_delivered_carrier_date` | datetime | Handoff to the logistics carrier. Missing for 1,783 (not yet shipped/canceled). |\n| `order_delivered_customer_date` | datetime | Delivery to the customer. **Missing for 2,965** (undelivered/canceled) — drives the main missingness. |\n| `order_estimated_delivery_date` | datetime | Delivery estimate shown to the customer at purchase. Always present. |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#3",
+    "text": "2. `olist_customers_dataset.csv` — customers (dimension)\n99,441 rows × 5 cols. Grain: one row per **per-order customer key**. PK: `customer_id`.\n\n| Column | Type | Description |\n|---|---|---|\n| `customer_id` | str | Per-order customer key. **PK.** Joins to `orders.customer_id`. |\n| `customer_unique_id` | str | Stable identifier for the actual person across orders (96,096 distinct → some repeat buyers). |\n| `customer_zip_code_prefix` | int | First 5 digits of the customer ZIP. FK → `geolocation`. |\n| `customer_city` | str | Customer city (lowercased, unaccented). |\n| `customer_state` | str | 2-letter Brazilian state (e.g. `SP`, `RJ`, `MG`). |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#4",
+    "text": "3. `olist_order_items_dataset.csv` — order line items (fact)\n112,650 rows × 7 cols. Grain: one row per **item line within an order**. PK: (`order_id`, `order_item_id`).\n\n| Column | Type | Description |\n|---|---|---|\n| `order_id` | str | FK → `orders.order_id`. |\n| `order_item_id` | int | Sequence number of the item within the order (1, 2, 3, …). Max count = items in the order. |\n| `product_id` | str | FK → `products.product_id`. |\n| `seller_id` | str | FK → `sellers.seller_id`. |\n| `shipping_limit_date` | datetime | Seller's deadline to hand the item to the carrier. |\n| `price` | float | Item price (BRL), excluding freight. |\n| `freight_value` | float | Freight/shipping cost allocated to this item (BRL). |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#5",
+    "text": "4. `olist_order_payments_dataset.csv` — payments (fact)\n103,886 rows × 5 cols. Grain: one row per **payment installment record**. PK: (`order_id`, `payment_sequential`).\n\n| Column | Type | Description |\n|---|---|---|\n| `order_id` | str | FK → `orders.order_id`. |\n| `payment_sequential` | int | Sequence of payment methods used for the order. |\n| `payment_type` | str | `credit_card`, `boleto`, `voucher`, `debit_card`, `not_defined`. |\n| `payment_installments` | int | Number of installments chosen. |\n| `payment_value` | float | Value of this payment record (BRL). |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#6",
+    "text": "5. `olist_order_reviews_dataset.csv` — reviews (fact, ≈1 per order)\n99,224 rows × 7 cols (98,673 distinct orders). Grain: one row per **review**. PK: `review_id`.\n\n| Column | Type | Description |\n|---|---|---|\n| `review_id` | str | Unique review id. **PK.** |\n| `order_id` | str | FK → `orders.order_id`. |\n| `review_score` | int | Customer rating, **1–5 stars**. Target signal for the satisfaction model. |\n| `review_comment_title` | str | Optional free-text title (mostly null; Portuguese). |\n| `review_comment_message` | str | Optional free-text body (~58% null; Portuguese). Used by Phase 3 review NLP. |\n| `review_creation_date` | datetime | When the review survey was sent. |\n| `review_answer_timestamp` | datetime | When the customer submitted the review. |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#7",
+    "text": "6. `olist_products_dataset.csv` — products (dimension)\n32,951 rows × 9 cols. Grain: one row per **product**. PK: `product_id`.\n\n| Column | Type | Description |\n|---|---|---|\n| `product_id` | str | Unique product id. **PK.** |\n| `product_category_name` | str | Category in Portuguese (610 products null). Join key to the translation table. |\n| `product_name_lenght` | float | Character length of the product name. (Original misspelling \"lenght\" preserved.) |\n| `product_description_lenght` | float | Character length of the description. |\n| `product_photos_qty` | float | Number of published product photos. |\n| `product_weight_g` | float | Product weight in grams. |\n| `product_length_cm` | float | Package length (cm). |\n| `product_height_cm` | float | Package height (cm). |\n| `product_width_cm` | float | Package width (cm). |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#8",
+    "text": "7. `olist_sellers_dataset.csv` — sellers (dimension)\n3,095 rows × 4 cols. Grain: one row per **seller**. PK: `seller_id`.\n\n| Column | Type | Description |\n|---|---|---|\n| `seller_id` | str | Unique seller id. **PK.** |\n| `seller_zip_code_prefix` | int | First 5 digits of the seller ZIP. FK → `geolocation`. |\n| `seller_city` | str | Seller city. |\n| `seller_state` | str | 2-letter Brazilian state. |",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#9",
+    "text": "8. `olist_geolocation_dataset.csv` — geolocation (lookup)\n1,000,163 rows × 5 cols. Grain: one row per **(zip prefix, lat/lng) point** (many points per prefix).\n\n| Column | Type | Description |\n|---|---|---|\n| `geolocation_zip_code_prefix` | int | First 5 digits of a Brazilian ZIP. Join key for customers & sellers. |\n| `geolocation_lat` | float | Latitude. |\n| `geolocation_lng` | float | Longitude. |\n| `geolocation_city` | str | City name. |\n| `geolocation_state` | str | 2-letter state. |\n\n*Note:* not joined in Phase 1 (needs aggregation to one lat/lng per prefix); reserved for distance features in Phase 2.",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#10",
+    "text": "9. `product_category_name_translation.csv` — category translation (lookup)\n71 rows × 2 cols. Grain: one row per **category**.\n\n| Column | Type | Description |\n|---|---|---|\n| `product_category_name` | str | Category name in Portuguese. Join key to `products`. |\n| `product_category_name_english` | str | English translation (used for readable charts/labels). |\n\n---",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/data_dictionary.md#11",
+    "text": "Order-level table (Phase 1 output)\nBuilt in `notebooks/01_eda_olist.ipynb` and written to\n`data/processed/orders_order_level.csv` (gitignored derived artifact).\n**Grain: one row per order** (99,441 rows). It is `orders` left-joined to\n`customers`, plus order-level aggregates of items/payments/reviews, plus derived\ndelivery metrics. Columns below are those added on top of the raw `orders` +\n`customers` columns documented above.\n\n### Aggregated from `order_items` (per order)\n| Column | Type | Description |\n|---|---|---|\n| `n_items` | float | Count of item lines in the order. |\n| `n_sellers` | float | Distinct sellers in the order. |\n| `n_products` | float | Distinct products in the order. |\n| `total_price` | float | Sum of item prices (BRL). |\n| `total_freight` | float | Sum of freight values (BRL). |\n| `main_category` | str | Dominant (modal) English product category for the order. |\n\n### Aggregated from `order_payments` (per order)\n| Column | Type | Description |\n|---|---|---|\n| `total_payment_value` | float | Sum of all payment records (BRL). |\n| `n_payments` | float | Number of payment records. |\n| `max_installments` | float | Maximum installments across payments. |\n| `primary_payment_type` | str | Payment type of the single highest-value payment. |\n\n### From `reviews` (one kept per order — latest answered)\n| Column | Type | Description |\n|---|---|---|\n| `review_score` | float | 1–5 star score; null when the order has no review (~0.8%). |\n| `review_creation_date` | datetime | Review survey creation date for the kept review. |\n\n### Derived delivery metrics (all in days)\n| Column | Type | Description |\n|---|---|---|\n| `actual_delivery_days` | float | `order_delivered_customer_date − order_purchase_timestamp`. Null if undelivered. |\n| `estimated_delivery_days` | float | `order_estimated_delivery_date − order_purchase_timestamp`. |\n| `delivery_vs_estimate_days` | float | `delivered − estimated`. **Positive = late.** |\n| `is_late` | bool | `delivery_vs_estimate_days > 0`. Core proxy label for \"order went wrong.\" |\n\n### Known data-quality notes\n- **Structural missingness**, not corruption: undelivered/canceled orders lack\n  `order_delivered_customer_date` (→ null delivery metrics); ~0.8% of orders have\n  no review.\n- `order_status` should be respected when modeling delivery: compute timing\n  metrics on `delivered` orders only.\n- Column misspellings `product_name_lenght` / `product_description_lenght` are\n  from the source data and kept as-is for traceability.\n- `geolocation` has duplicate points per ZIP prefix — aggregate before joining.\n- `customer_id` is per-order; use `customer_unique_id` to identify repeat buyers.",
+    "source": "docs/data_dictionary.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#0",
+    "text": "(preamble)\n# Model Card\n\nVeridian ships two supervised classifiers. Both are evaluated on a held-out test\nset against a majority-class baseline, and the numbers below are reported as\nmeasured — no inflation. Metrics are regenerated by `python -m models.train` and\nwritten to `reports/` (`metrics_delay.json`, `metrics_low_review.json`,\n`model_report.md`, confusion matrices, and SHAP plots).",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#1",
+    "text": "Models at a glance\n| | `delay` | `low_review` |\n|---|---|---|\n| Task | Predict an order is delivered later than the customer's estimate | Predict a customer leaves a 1–2★ review |\n| Label | `is_late` (delivered after estimate) | `low_review` (review score ≤ 2) |\n| Framing | Order-time (pre-outcome) | Post-delivery |\n| Modeled population | Delivered orders | Delivered orders with a review |\n| Test base rate | 8.1% positive | 12.8% positive |\n| Algorithm | XGBoost in a scikit-learn pipeline, isotonic-calibrated | Same |",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#2",
+    "text": "Data\n- **Source:** Olist Brazilian E-Commerce dataset (~100k orders, 2016–2018). The\n  full entity model and column definitions are in\n  [`data_dictionary.md`](data_dictionary.md).\n- **Modeling frame:** the `order_features` warehouse table joined to the delivery\n  outcome columns of `orders_order_level`. Both models train on **delivered\n  orders only** (96,478 orders), since delivery and review outcomes are only\n  defined for delivered orders.\n- **Split:** 64% train / 16% validation / 20% test, stratified on the label.\n  - `delay`: 61,740 train · 15,436 validation · 19,294 test.\n  - `low_review`: 61,332 train · 15,333 validation · 19,167 test (orders with a review).",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#3",
+    "text": "Features\nFeature sets are defined once in `models/features.py` and shared by training, the\nsaved metadata, and the API request schemas so they cannot drift.\n\n**Order-time features (both models):**\n\n- *Numeric:* `estimated_delivery_days`, `approval_delay_hours`, `n_items`,\n  `n_sellers`, `n_products`, `total_price`, `total_freight`, `freight_ratio`,\n  `avg_product_weight_g`, `max_product_weight_g`, `avg_product_volume_cm3`,\n  `max_installments`, `n_payments`, `customer_seller_distance_km`,\n  `purchase_month`, `purchase_dow`, `purchase_hour`, `purchase_is_weekend`,\n  `cross_state_shipment`.\n- *Categorical:* `main_category`, `primary_payment_type`, `customer_state`,\n  `main_seller_state`.\n\n**Additional post-delivery features (`low_review` only):**\n`actual_delivery_days`, `delivery_vs_estimate_days`, `is_late_int`.",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#4",
+    "text": "Methodology\n- **Preprocessing.** A `ColumnTransformer` applies median imputation to numeric\n  features and most-frequent imputation plus one-hot encoding (with\n  `handle_unknown=\"ignore\"` and a minimum category frequency) to categoricals.\n- **Estimator.** `XGBClassifier` (300 trees, max depth 5, learning rate 0.08,\n  subsample/colsample 0.9, L2 regularization), with `scale_pos_weight` set from\n  the training-set class ratio to handle imbalance.\n- **Threshold tuning.** The operating threshold is chosen to maximize F1 on the\n  **validation** split only. The test set is never used for threshold selection,\n  so reported test metrics are unbiased.\n- **Calibration.** The serving model wraps the pipeline in\n  `CalibratedClassifierCV` with isotonic regression (3-fold), so the API returns\n  usable probabilities rather than raw scores. Calibration roughly halves the\n  Brier score (see below).\n- **Baseline.** Every model is compared against a majority-class predictor, which\n  scores ROC-AUC 0.5 and 0 recall on the positive class.\n\n### Leakage control\n\nThe leakage boundary is enforced through the per-model feature lists, not\nconvention:\n\n- The **`delay`** model may use only features known at or shortly after purchase.\n  It never sees the delivery outcome it predicts.\n- The **`low_review`** model is framed as *post-delivery*: the customer's review\n  is created after the order arrives, so delivery-outcome features\n  (`actual_delivery_days`, `delivery_vs_estimate_days`, `is_late_int`) are\n  legitimate inputs, not leakage.",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#5",
+    "text": "Held-out metrics\nMeasured on the 20% stratified test set. Threshold-independent metrics (ROC-AUC,\nPR-AUC, Brier) are the headline numbers; operating-point metrics depend on the\nchosen threshold.\n\n### `delay`\n\nTest set: 19,294 orders · positive base rate 8.1%.\n\n| Metric | Model | Baseline |\n|---|---|---|\n| ROC-AUC | **0.7845** | 0.5 |\n| PR-AUC | **0.2946** | 0.081 (prevalence) |\n| Brier (calibrated) | 0.0655 | — |\n| Brier (uncalibrated) | 0.156 | — |\n\n| Operating point | Precision | Recall | F1 | Accuracy |\n|---|---|---|---|---|\n| Threshold 0.50 | 0.600 | 0.050 | 0.092 | 0.920 |\n| Tuned threshold 0.1529 | 0.276 | 0.475 | 0.349 | 0.856 |\n\nBaseline (predict majority class): accuracy 0.919, recall on positives 0.0.\n\n**Top SHAP drivers:** `estimated_delivery_days`, `purchase_month` (seasonality),\n`customer_seller_distance_km`, São Paulo customer origin, `approval_delay_hours`,\n`cross_state_shipment`, and `total_freight` — all operationally intuitive. See\n`reports/shap_delay.png`.\n\n### `low_review`\n\nTest set: 19,167 orders · positive base rate 12.8%.\n\n| Metric | Model | Baseline |\n|---|---|---|\n| ROC-AUC | **0.7643** | 0.5 |\n| PR-AUC | **0.4858** | 0.128 (prevalence) |\n| Brier (calibrated) | 0.0853 | — |\n| Brier (uncalibrated) | 0.155 | — |\n\n| Operating point | Precision | Recall | F1 | Accuracy |\n|---|---|---|---|---|\n| Threshold 0.50 | 0.768 | 0.310 | 0.441 | 0.900 |\n| Tuned threshold 0.2407 | 0.557 | 0.423 | 0.481 | 0.883 |\n\nBaseline (predict majority class): accuracy 0.872, recall on positives 0.0.",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#6",
+    "text": "Interpretation and limitations\n- Both models rank substantially better than chance (ROC-AUC ≈ 0.78 and 0.76 vs.\n  0.50) and well above the no-skill PR line (PR-AUC ≈ 3.6× and 3.8× prevalence).\n- The classes are imbalanced, so the default 0.50 threshold yields low recall on\n  the positive class. The API therefore uses the validation-tuned threshold,\n  which trades precision for recall to surface more at-risk orders.\n- Probabilities are calibrated, so a predicted 0.30 corresponds to roughly a 30%\n  empirical rate. This is what makes the scores usable for ranking and triage.\n- The dataset is historical Olist data (2016–2018) from the Brazilian market;\n  metrics describe that distribution and would need revalidation before use on a\n  different retailer or time period.\n- The `is_complaint` proxy label defined in the pipeline is a documented\n  approximation (the dataset has no returns table) and is not currently served as\n  a model.",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "docs/MODEL_CARD.md#7",
+    "text": "Consumption by the AI copilot\nBoth models are exposed to the Phase 5 AI copilot (`ai/`) as function-calling\ntools (`predict_delay`, `predict_low_review`). When a user asks an order-specific\nrisk question, the copilot calls the tool, which runs the same calibrated\npipeline served at `/predict`, and reports the returned probability and alert\nflag. The copilot is instructed never to estimate a probability itself — every\nrisk number it gives comes from the model, not the language model — so the\nfigures remain calibrated and auditable. Dataset and metric questions are\nanswered from a retrieval index built over this model card, the data dictionary,\nand `reports/metrics_*.json`, so cited statistics trace back to the measured\nvalues above.",
+    "source": "docs/MODEL_CARD.md"
+  },
+  {
+    "id": "metrics_delay",
+    "text": "Model 'delay' — delivery-delay risk. Held-out test set: 19,294 orders; positive base rate 8.1%. Train 61,740 / validation 15,436 / test 19,294. ROC-AUC 0.7845, PR-AUC 0.2946, Brier 0.0655 (uncalibrated 0.156). At the validation-tuned threshold 0.1529: precision 0.2762, recall 0.4754, F1 0.3494, accuracy 0.8564. Majority-class baseline accuracy 0.9189, recall on positives 0.0. Probabilities are isotonic-calibrated.",
+    "source": "reports/metrics_delay.json"
+  },
+  {
+    "id": "shap_delay",
+    "text": "Model 'delay' top SHAP feature importances (mean |SHAP|): num__estimated_delivery_days (0.58962), num__purchase_month (0.57902), num__customer_seller_distance_km (0.30265), cat__customer_state_SP (0.16045), num__approval_delay_hours (0.15886), num__cross_state_shipment (0.14648), num__total_freight (0.11309), cat__customer_state_MG (0.10597).",
+    "source": "reports/metrics_delay.json"
+  },
+  {
+    "id": "metrics_low_review",
+    "text": "Model 'low_review' — low-review (1-2 star) satisfaction risk. Held-out test set: 19,167 orders; positive base rate 12.8%. Train 61,332 / validation 15,333 / test 19,167. ROC-AUC 0.7643, PR-AUC 0.4858, Brier 0.0853 (uncalibrated 0.155). At the validation-tuned threshold 0.2407: precision 0.5569, recall 0.4228, F1 0.4807, accuracy 0.883. Majority-class baseline accuracy 0.8719, recall on positives 0.0. Probabilities are isotonic-calibrated.",
+    "source": "reports/metrics_low_review.json"
+  }
+]

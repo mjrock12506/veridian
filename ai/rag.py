@@ -1,78 +1,27 @@
-"""Retrieval layer (RAG) backed by a local Chroma vector store.
+"""Retrieval layer (RAG) — lightweight and free-tier friendly.
 
-The corpus from :mod:`ai.knowledge` is embedded with Chroma's default local
-embedding model (no API key, runs offline once the small model is cached) and
-persisted under ``ai/.chroma`` (gitignored). The copilot retrieves the top-k
-chunks for a question and grounds its answer in them, so dataset figures come
-from real artifacts rather than the model's parametric memory.
+Grounding passages come from a small knowledge corpus (see :mod:`ai.knowledge`)
+that is precomputed offline and committed at ``ai/knowledge_corpus.json``
+(regenerate with ``python -m ai.index_knowledge``). At request time the query is
+scored against that corpus with TF-IDF cosine similarity using scikit-learn,
+which is already a serving dependency.
+
+This means ``/ask`` needs **no vector database, no local embedding model, and no
+embedding API** at request time: peak memory is a few hundred KB and retrieval
+works regardless of which LLM provider the API key is for. (The previous Chroma
+store loaded a local ONNX embedding model that pushed the serving image over
+Render's 512 MB free tier.)
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 from ai import config, knowledge
 
-_client = None
-_collection = None
-
-
-def _embedding_function():
-    # Default = a small all-MiniLM ONNX model cached under ~/.cache/chroma.
-    from chromadb.utils import embedding_functions
-
-    return embedding_functions.DefaultEmbeddingFunction()
-
-
-def _get_collection():
-    """Return the persistent collection, creating the client lazily."""
-    global _client, _collection
-    if _collection is None:
-        import chromadb
-
-        config.CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-        _client = chromadb.PersistentClient(path=str(config.CHROMA_DIR))
-        _collection = _client.get_or_create_collection(
-            name=config.CHROMA_COLLECTION,
-            embedding_function=_embedding_function(),
-            metadata={"hnsw:space": "cosine"},
-        )
-    return _collection
-
-
-def build_index() -> int:
-    """(Re)build the vector store from the knowledge corpus. Returns doc count."""
-    global _collection
-    import chromadb
-
-    config.CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(config.CHROMA_DIR))
-    # Start clean so re-indexing is idempotent.
-    try:
-        client.delete_collection(config.CHROMA_COLLECTION)
-    except Exception:
-        pass
-    _collection = None
-    coll = client.get_or_create_collection(
-        name=config.CHROMA_COLLECTION,
-        embedding_function=_embedding_function(),
-        metadata={"hnsw:space": "cosine"},
-    )
-    docs = knowledge.build_corpus()
-    coll.add(
-        ids=[d.id for d in docs],
-        documents=[d.text for d in docs],
-        metadatas=[{"source": d.source} for d in docs],
-    )
-    _collection = coll
-    return len(docs)
-
-
-def is_indexed() -> bool:
-    try:
-        return _get_collection().count() > 0
-    except Exception:
-        return False
+# Cached (vectorizer, doc_matrix, docs) built on first retrieval.
+_index: tuple | None = None
 
 
 @dataclass
@@ -82,20 +31,83 @@ class Passage:
     score: float
 
 
+def _load_corpus() -> list[dict]:
+    """Corpus documents to search.
+
+    Prefers the committed snapshot (which ships inside the Docker image); falls
+    back to building it from the source docs/reports when they're available
+    (local development / regeneration).
+    """
+    path = config.KNOWLEDGE_CORPUS_PATH
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except Exception:
+            pass
+    return [{"id": d.id, "text": d.text, "source": d.source} for d in knowledge.build_corpus()]
+
+
+def _get_index():
+    global _index
+    if _index is None:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        docs = _load_corpus()
+        if not docs:
+            _index = (None, None, [])
+            return _index
+        vec = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), sublinear_tf=True)
+        matrix = vec.fit_transform([d["text"] for d in docs])
+        _index = (vec, matrix, docs)
+    return _index
+
+
+def is_indexed() -> bool:
+    try:
+        return bool(_get_index()[2])
+    except Exception:
+        return False
+
+
 def retrieve(query: str, k: int | None = None) -> list[Passage]:
     """Return the top-k grounded passages for a query (empty if unavailable)."""
     k = k or config.RAG_TOP_K
+    if not (query or "").strip():
+        return []
     try:
-        coll = _get_collection()
-        if coll.count() == 0:
+        vec, matrix, docs = _get_index()
+        if not docs or vec is None:
             return []
-        res = coll.query(query_texts=[query], n_results=min(k, coll.count()))
+        import numpy as np
+        from sklearn.metrics.pairwise import linear_kernel
+
+        # TF-IDF rows are L2-normalised, so the linear kernel is cosine similarity.
+        sims = linear_kernel(vec.transform([query]), matrix)[0]
     except Exception:
         return []
-    docs = res.get("documents", [[]])[0]
-    metas = res.get("metadatas", [[]])[0]
-    dists = res.get("distances", [[]])[0]
+
     out: list[Passage] = []
-    for text, meta, dist in zip(docs, metas, dists):
-        out.append(Passage(text=text, source=(meta or {}).get("source", "?"), score=round(1 - dist, 4)))
+    for i in np.argsort(sims)[::-1][:k]:
+        score = float(sims[i])
+        if score <= 0:
+            continue
+        d = docs[int(i)]
+        out.append(Passage(text=d["text"], source=d.get("source", "?"), score=round(score, 4)))
     return out
+
+
+def build_index() -> int:
+    """Regenerate the committed corpus snapshot from the source docs/reports.
+
+    Offline/build-time use (``python -m ai.index_knowledge``); returns doc count.
+    Retrieval at request time only reads the committed JSON, never this path.
+    """
+    global _index
+    docs = knowledge.build_corpus()
+    payload = [{"id": d.id, "text": d.text, "source": d.source} for d in docs]
+    config.KNOWLEDGE_CORPUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    config.KNOWLEDGE_CORPUS_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False)
+    )
+    _index = None  # force rebuild on next retrieve()
+    return len(docs)

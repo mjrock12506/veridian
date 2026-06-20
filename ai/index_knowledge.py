@@ -1,9 +1,11 @@
-"""Build the copilot's retrieval index.
+"""Build the copilot's retrieval corpus.
 
     python -m ai.index_knowledge
 
 Reads the knowledge corpus (data dictionary, model card, metric summaries) and
-(re)builds the local Chroma vector store under ai/.chroma. Idempotent.
+writes the precomputed snapshot to ai/knowledge_corpus.json, which the API ships
+in its Docker image and searches with a lightweight TF-IDF retriever at request
+time (no vector DB / embedding model needed). Idempotent — commit the result.
 """
 
 from __future__ import annotations
@@ -13,8 +15,7 @@ from ai import rag
 
 def main() -> int:
     n = rag.build_index()
-    print(f"[rag] indexed {n} documents into '{rag.config.CHROMA_COLLECTION}' "
-          f"at {rag.config.CHROMA_DIR}")
+    print(f"[rag] wrote {n} documents to {rag.config.KNOWLEDGE_CORPUS_PATH}")
     return 0
 
 
