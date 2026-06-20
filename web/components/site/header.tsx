@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { label: "Problem", href: "#problem" },
   { label: "How it works", href: "#how-it-works" },
-  { label: "What you get", href: "#benefits" },
+  { label: "Try the demo", href: "#explore" },
 ];
 
 export function Header() {

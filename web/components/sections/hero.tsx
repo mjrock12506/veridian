@@ -47,9 +47,10 @@ export function Hero() {
           transition={{ duration: 0.8, ease, delay: 0.14 }}
           className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl"
         >
-          Predict and prevent late deliveries, unhappy customers, and returns —
-          before they happen. Veridian scores every order and tells your team
-          exactly what to do about it.
+          Veridian predicts which e-commerce orders will go wrong — late
+          deliveries, low reviews, complaints — and recommends what to do about
+          it. Custom ML models trained on the public Olist dataset, with an AI
+          copilot that explains every score in plain English.
         </motion.p>
 
         <motion.div
@@ -60,12 +61,12 @@ export function Hero() {
         >
           <Button size="lg" asChild>
             <a href="/dashboard">
-              View live demo
+              Try the demo
               <ArrowRight className="size-4" />
             </a>
           </Button>
           <Button size="lg" variant="secondary" asChild>
-            <a href="#how-it-works">See how it works</a>
+            <a href="#explore">How to use the demo</a>
           </Button>
           <Button size="lg" variant="ghost" asChild>
             <a href="/login">Sign in</a>

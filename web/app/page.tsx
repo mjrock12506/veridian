@@ -3,7 +3,8 @@ import { Footer } from "@/components/site/footer";
 import { Hero } from "@/components/sections/hero";
 import { Problem } from "@/components/sections/problem";
 import { HowItWorks } from "@/components/sections/how-it-works";
-import { WhatYouGet } from "@/components/sections/what-you-get";
+import { DemoGuide } from "@/components/sections/demo-guide";
+import { Roadmap } from "@/components/sections/roadmap";
 import { ClosingCta } from "@/components/sections/closing-cta";
 
 export default function Home() {
@@ -15,7 +16,8 @@ export default function Home() {
         <div className="hairline container" />
         <Problem />
         <HowItWorks />
-        <WhatYouGet />
+        <DemoGuide />
+        <Roadmap />
         <ClosingCta />
       </main>
       <Footer />
