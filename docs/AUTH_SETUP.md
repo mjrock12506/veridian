@@ -20,7 +20,7 @@ Create `web/.env.local`:
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmbGFkbWl1a3d0Z2p3dGtrZm9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MzMxNzEsImV4cCI6MjA5NzQwOTE3MX0.FJTMI2siOiUAK4paWuW1rn3s2a3QorXFUdY7h7Ci88Y
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR-ANON-PUBLIC-KEY
 ```
 
 Restart `npm run dev`. **Email/password sign-up and sign-in now work at `/login`.**

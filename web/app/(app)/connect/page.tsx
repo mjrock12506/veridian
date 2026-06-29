@@ -195,13 +195,13 @@ function Results({ data }: { data: BatchScoreResult }) {
       </div>
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-5 py-3 font-medium">Order</th>
-                <th className="px-5 py-3 font-medium">Delay risk</th>
-                <th className="px-5 py-3 font-medium">Low-review risk</th>
-                <th className="px-5 py-3 font-medium">Recommended action</th>
+                <th className="px-4 py-3 font-medium">Order</th>
+                <th className="px-4 py-3 font-medium">Delay risk</th>
+                <th className="px-4 py-3 font-medium">Low-review risk</th>
+                <th className="px-4 py-3 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -212,20 +212,20 @@ function Results({ data }: { data: BatchScoreResult }) {
                   const actionable = action !== "No action needed";
                   return (
                     <tr key={r.order_id} className="border-b border-border/40 last:border-0 hover:bg-secondary/40">
-                      <td className="px-5 py-3 font-mono text-xs text-foreground/90">{r.order_id}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3 font-mono text-xs text-foreground/90">{r.order_id}</td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="tabular-nums text-foreground">{pct(r.delay_probability)}</span>
                           <RiskBadge level={r.delay_risk} />
                         </div>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="tabular-nums text-foreground">{pct(r.low_review_probability)}</span>
                           <RiskBadge level={r.low_review_risk} />
                         </div>
                       </td>
-                      <td className={`px-5 py-3 ${actionable ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                      <td className={`px-4 py-3 ${actionable ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                         {action}
                       </td>
                     </tr>
