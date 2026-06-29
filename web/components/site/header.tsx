@@ -56,7 +56,7 @@ export function Header() {
             <Link href="/login">Sign in</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link href="/dashboard">Open the app</Link>
+            <Link href="/start">Open the app</Link>
           </Button>
         </div>
 
@@ -85,7 +85,7 @@ export function Header() {
             ))}
             <div className="mt-2 flex flex-col gap-2 px-1">
               <Button size="md" asChild>
-                <Link href="/dashboard" onClick={() => setOpen(false)}>Open the app</Link>
+                <Link href="/start" onClick={() => setOpen(false)}>Open the app</Link>
               </Button>
             </div>
           </nav>

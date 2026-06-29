@@ -3,6 +3,7 @@
 import { Package, AlertTriangle, ThumbsDown, ShieldAlert } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
+import { DataBadge } from "@/components/app/data-badge";
 import { StatCard } from "@/components/app/stat-card";
 import { OrdersTable } from "@/components/app/orders-table";
 import { RiskDistributionChart, OrdersOverTimeChart } from "@/components/app/charts";
@@ -19,6 +20,7 @@ export default function DashboardPage() {
     <div>
       <PageHeader
         eyebrow="Workspace"
+        badge={<DataBadge kind="demo" />}
         title="Risk dashboard"
         description="Every delivered order in the sample, scored for delivery-delay and low-review risk by the calibrated models."
       />

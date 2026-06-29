@@ -3,6 +3,7 @@
 import { Users, Repeat, Coins, Crown, ArrowRight } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
+import { DataBadge } from "@/components/app/data-badge";
 import { StatCard } from "@/components/app/stat-card";
 import { ValueTierChart } from "@/components/app/charts";
 import { LoadingState, ErrorState } from "@/components/app/states";
@@ -15,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 const TONE: Record<CustomerSegment["tone"], { dot: string; chip: string; accent: string }> = {
   primary: { dot: "bg-primary", chip: "border-primary/30 bg-primary/10 text-primary", accent: "border-primary/30 text-primary" },
-  amber: { dot: "bg-amber-400", chip: "border-amber-400/30 bg-amber-400/10 text-amber-300", accent: "border-amber-400/30 text-amber-300" },
+  amber: { dot: "bg-amber-400", chip: "border-amber-400/30 bg-amber-400/10 text-amber-600", accent: "border-amber-400/30 text-amber-600" },
   muted: { dot: "bg-muted-foreground/60", chip: "border-border/60 bg-secondary/40 text-muted-foreground", accent: "border-border/60 text-muted-foreground" },
 };
 
@@ -28,6 +29,7 @@ export default function SegmentsPage() {
     <div>
       <PageHeader
         eyebrow="Workspace"
+        badge={<DataBadge kind="demo" />}
         title="Customer segments"
         description="Every buyer grouped by lifetime value and loyalty, with a recommended retention action for each segment — computed from the full order history."
       />

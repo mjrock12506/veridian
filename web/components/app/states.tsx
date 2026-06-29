@@ -20,7 +20,7 @@ export function ErrorState({
 }) {
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
-      <span className="flex size-12 items-center justify-center rounded-full border border-rose-500/40 bg-rose-500/10 text-rose-300">
+      <span className="flex size-12 items-center justify-center rounded-full border border-rose-500/40 bg-rose-500/10 text-rose-600">
         <AlertCircle className="size-6" />
       </span>
       <div>

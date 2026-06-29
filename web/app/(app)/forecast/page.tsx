@@ -3,6 +3,7 @@
 import { TrendingUp, CalendarClock, Activity, BarChart3, Info } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
+import { DataBadge } from "@/components/app/data-badge";
 import { StatCard } from "@/components/app/stat-card";
 import { ForecastChart } from "@/components/app/charts";
 import { LoadingState, ErrorState } from "@/components/app/states";
@@ -19,6 +20,7 @@ export default function ForecastPage() {
     <div>
       <PageHeader
         eyebrow="Workspace"
+        badge={<DataBadge kind="demo" />}
         title="Demand forecast"
         description="Monthly order volume across the dataset, with a transparent trend-based projection for the months ahead."
       />

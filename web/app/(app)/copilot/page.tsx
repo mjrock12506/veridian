@@ -4,6 +4,7 @@ import * as React from "react";
 import { Bot, Send, User, Sparkles, FileText, Loader2 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
+import { DataBadge } from "@/components/app/data-badge";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api, ApiError, type AskResponse } from "@/lib/api";
@@ -59,6 +60,7 @@ export default function CopilotPage() {
     <div className="flex h-[calc(100vh-8rem)] flex-col lg:h-[calc(100vh-5rem)]">
       <PageHeader
         eyebrow="Workspace"
+        badge={<DataBadge kind="demo" />}
         title="AI Copilot"
         description="Ask about the data or any order's risk. Answers are grounded in the data dictionary, model card, and the real models."
       />
@@ -145,7 +147,7 @@ function MessageBubble({ message }: { message: Message }) {
             isUser
               ? "bg-primary/15 text-foreground"
               : message.isError
-                ? "border border-rose-500/40 bg-rose-500/10 text-rose-100"
+                ? "border border-rose-500/40 bg-rose-500/10 text-rose-700"
                 : "border border-border/60 bg-secondary/40 text-foreground/90"
           )}
         >

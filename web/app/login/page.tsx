@@ -164,12 +164,12 @@ function LoginForm() {
         </label>
 
         {error && (
-          <p className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          <p className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-600">
             <ShieldAlert className="mt-px size-3.5 shrink-0" /> {error}
           </p>
         )}
         {info && (
-          <p className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          <p className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700">
             <CheckCircle2 className="mt-px size-3.5 shrink-0" /> {info}
           </p>
         )}
@@ -210,14 +210,14 @@ function NotConfigured() {
       <h1 className="font-display text-xl font-semibold tracking-tight">
         Authentication not configured
       </h1>
-      <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+      <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700/90">
         <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-400" />
         <div>
           <p>
             Sign-in is disabled because the Supabase environment variables are
             not set. The app still runs locally without authentication.
           </p>
-          <p className="mt-2 text-amber-100/70">
+          <p className="mt-2 text-amber-700/70">
             To enable accounts, set{" "}
             <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code>{" "}
             and{" "}

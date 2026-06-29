@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessagesSquare, SlidersHorizontal, Users, LineChart, Store, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { Compass, LayoutDashboard, MessagesSquare, SlidersHorizontal, Users, LineChart, Store, ArrowUpRight, type LucideIcon } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -10,6 +10,7 @@ import { GuestBadge } from "@/components/auth/guest-badge";
 import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
+  { label: "Start here", href: "/start", icon: Compass },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Customer segments", href: "/segments", icon: Users },
   { label: "Demand forecast", href: "/forecast", icon: LineChart },

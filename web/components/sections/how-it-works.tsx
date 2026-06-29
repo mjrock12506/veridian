@@ -41,10 +41,10 @@ function ScoreVisual() {
         <div className="ml-[72%] h-full w-1 bg-foreground/90 shadow-[0_0_6px_hsl(var(--foreground))]" />
       </div>
       <div className="mt-3 flex gap-2">
-        <span className="rounded-md border border-rose-400/30 bg-rose-400/10 px-2 py-1 font-mono text-[10px] text-rose-300">
+        <span className="rounded-md border border-rose-400/30 bg-rose-400/10 px-2 py-1 font-mono text-[10px] text-rose-600">
           delay 78%
         </span>
-        <span className="rounded-md border border-amber-300/30 bg-amber-300/10 px-2 py-1 font-mono text-[10px] text-amber-200">
+        <span className="rounded-md border border-amber-300/30 bg-amber-300/10 px-2 py-1 font-mono text-[10px] text-amber-600">
           low-review 61%
         </span>
       </div>

@@ -125,7 +125,7 @@ export default function ScorePage() {
             </Card>
           )}
           {error && (
-            <Card className="border-rose-500/40 bg-rose-500/10 text-sm text-rose-100">{error}</Card>
+            <Card className="border-rose-500/40 bg-rose-500/10 text-sm text-rose-700">{error}</Card>
           )}
           {results?.delay && <ResultCard title="Delivery delay risk" r={results.delay} />}
           {results?.low_review && <ResultCard title="Low-review risk" r={results.low_review} />}

@@ -13,8 +13,8 @@ const TIMELINE = [
 
 const toneStyles: Record<string, string> = {
   ok: "border-primary/50 bg-primary/10 text-primary",
-  warn: "border-amber-400/40 bg-amber-400/10 text-amber-300",
-  bad: "border-rose-500/40 bg-rose-500/10 text-rose-300",
+  warn: "border-amber-400/40 bg-amber-400/10 text-amber-600",
+  bad: "border-rose-500/40 bg-rose-500/10 text-rose-600",
 };
 
 export function Problem() {
@@ -23,7 +23,7 @@ export function Problem() {
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
           <Reveal className="eyebrow">
-            <AlertTriangle className="size-3.5 text-rose-300" />
+            <AlertTriangle className="size-3.5 text-rose-600" />
             The problem
           </Reveal>
           <Reveal index={1}>

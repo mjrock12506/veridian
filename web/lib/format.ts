@@ -21,9 +21,9 @@ export function num(v: number | null | undefined, digits = 0): string {
   return v.toLocaleString("en-US", { maximumFractionDigits: digits });
 }
 
-/** Tailwind classes for a risk badge by level. */
+/** Tailwind classes for a risk badge by level (semantic, not the brand accent). */
 export const riskBadgeClass: Record<RiskLevel, string> = {
-  low: "border-primary/30 bg-primary/10 text-primary",
-  medium: "border-amber-400/40 bg-amber-400/10 text-amber-300",
-  high: "border-rose-500/40 bg-rose-500/10 text-rose-300",
+  low: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700",
+  medium: "border-amber-500/30 bg-amber-500/10 text-amber-700",
+  high: "border-rose-500/40 bg-rose-500/10 text-rose-700",
 };

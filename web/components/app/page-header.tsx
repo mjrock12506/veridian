@@ -3,16 +3,23 @@ export function PageHeader({
   title,
   description,
   actions,
+  badge,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  badge?: React.ReactNode;
 }) {
   return (
     <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        {eyebrow && <span className="eyebrow mb-3">{eyebrow}</span>}
+        {(eyebrow || badge) && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+            {badge}
+          </div>
+        )}
         <h1 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           {title}
         </h1>

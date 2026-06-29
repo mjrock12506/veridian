@@ -233,7 +233,7 @@ export function OrderRiskConsole() {
                   <div className="flex items-center gap-1.5 font-mono text-[11px] tabular-nums">
                     <span className={cn(
                       "rounded px-1.5 py-0.5",
-                      o.level === "high" ? "text-rose-300" : o.level === "medium" ? "text-amber-200" : "text-primary"
+                      o.level === "high" ? "text-rose-600" : o.level === "medium" ? "text-amber-600" : "text-primary"
                     )}>
                       {pctLabel(o.delay)}
                     </span>

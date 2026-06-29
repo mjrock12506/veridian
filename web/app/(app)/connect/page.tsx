@@ -1,16 +1,35 @@
 "use client";
 
 import * as React from "react";
-import { Zap, FileUp, Sparkles, Package, AlertTriangle, ThumbsDown, ShieldAlert, Loader2 } from "lucide-react";
+import { Zap, FileUp, Sparkles, Download, Package, AlertTriangle, ThumbsDown, ShieldAlert, Loader2 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
 import { StatCard } from "@/components/app/stat-card";
 import { RiskBadge } from "@/components/app/risk-badge";
+import { DataBadge } from "@/components/app/data-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Reveal } from "@/components/anim/reveal";
-import { api, type BatchScoreResult } from "@/lib/api";
+import { api, type BatchScoreResult, type BatchScoreRow } from "@/lib/api";
 import { pct, num } from "@/lib/format";
+
+// A plain-English next step per scored order, so the score leads to an action.
+function recommendedAction(r: BatchScoreRow): string {
+  if (r.delay_risk === "high") return "Expedite shipping";
+  if (r.low_review_risk === "high") return "Proactive support outreach";
+  if (r.delay_risk === "medium") return "Confirm the delivery ETA";
+  if (r.low_review_risk === "medium") return "Check in after delivery";
+  return "No action needed";
+}
+
+function downloadTemplate() {
+  const blob = new Blob([SAMPLE_CSV + "\n"], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "veridian-orders-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 // Order-time columns a store knows when the order is placed. Everything is
 // optional — the models impute anything you leave out.
@@ -94,7 +113,7 @@ export default function ConnectPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Connect your store"
-        description="Bring your own orders — paste a CSV or upload a file — and score every one for delivery-delay and low-review risk with the same calibrated models. Missing columns are imputed; nothing is stored."
+        description="Export your orders from Shopify, Amazon Seller Central, or any platform as a CSV — then paste or upload it here. Every order gets a calibrated delivery-delay and low-review risk. No API and no sign-up; missing columns are imputed and nothing is stored."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
@@ -117,6 +136,9 @@ export default function ConnectPage() {
             <Button variant="secondary" onClick={() => fileRef.current?.click()} disabled={loading}>
               <FileUp className="size-4" /> Upload .csv
             </Button>
+            <Button variant="secondary" onClick={downloadTemplate}>
+              <Download className="size-4" /> Template
+            </Button>
             <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={onFile} className="hidden" />
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
@@ -132,7 +154,7 @@ export default function ConnectPage() {
 
         <div className="min-w-0">
           {error && (
-            <Card className="border-rose-500/40 bg-rose-500/5 text-sm text-rose-200">{error}</Card>
+            <Card className="border-rose-500/40 bg-rose-500/10 text-sm text-rose-700">{error}</Card>
           )}
           {!error && !data && !loading && (
             <Card className="flex h-full min-h-[18rem] flex-col items-center justify-center gap-3 text-center text-muted-foreground">
@@ -158,42 +180,54 @@ function Results({ data }: { data: BatchScoreResult }) {
   const s = data.summary;
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg font-semibold text-foreground">Results</h2>
+        <DataBadge kind="yours" />
+      </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard icon={Package} label="Scored" value={num(s.orders)} hint="orders" />
+        <StatCard icon={Package} label="Scored" value={num(s.orders)} hint="your orders" />
         <StatCard icon={AlertTriangle} label="Delay at-risk" value={`${s.delay_at_risk_pct}%`} hint={`${num(s.delay_at_risk)} flagged`} />
         <StatCard icon={ThumbsDown} label="Low-review at-risk" value={`${s.low_review_at_risk_pct}%`} hint={`${num(s.low_review_at_risk)} flagged`} />
         <StatCard icon={ShieldAlert} label="High risk" value={num(s.high_risk)} hint="on either model" />
       </div>
       <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Order</th>
                 <th className="px-5 py-3 font-medium">Delay risk</th>
                 <th className="px-5 py-3 font-medium">Low-review risk</th>
+                <th className="px-5 py-3 font-medium">Recommended action</th>
               </tr>
             </thead>
             <tbody>
               {[...data.results]
-                .sort((a, b) => b.delay_probability - a.delay_probability)
-                .map((r) => (
-                  <tr key={r.order_id} className="border-b border-border/40 last:border-0 hover:bg-secondary/40">
-                    <td className="px-5 py-3 font-mono text-xs text-foreground/90">{r.order_id}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="tabular-nums text-foreground">{pct(r.delay_probability)}</span>
-                        <RiskBadge level={r.delay_risk} />
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="tabular-nums text-foreground">{pct(r.low_review_probability)}</span>
-                        <RiskBadge level={r.low_review_risk} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                .sort((a, b) => Math.max(b.delay_probability, b.low_review_probability) - Math.max(a.delay_probability, a.low_review_probability))
+                .map((r) => {
+                  const action = recommendedAction(r);
+                  const actionable = action !== "No action needed";
+                  return (
+                    <tr key={r.order_id} className="border-b border-border/40 last:border-0 hover:bg-secondary/40">
+                      <td className="px-5 py-3 font-mono text-xs text-foreground/90">{r.order_id}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="tabular-nums text-foreground">{pct(r.delay_probability)}</span>
+                          <RiskBadge level={r.delay_risk} />
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="tabular-nums text-foreground">{pct(r.low_review_probability)}</span>
+                          <RiskBadge level={r.low_review_risk} />
+                        </div>
+                      </td>
+                      <td className={`px-5 py-3 ${actionable ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                        {action}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

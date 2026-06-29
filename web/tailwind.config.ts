@@ -84,14 +84,15 @@ const config: Config = {
         content: "1200px",
       },
       boxShadow: {
-        glow: "0 0 0 1px hsl(var(--primary) / 0.25), 0 0 40px -8px hsl(var(--primary) / 0.45)",
-        "card-hover": "0 24px 60px -24px hsl(var(--primary) / 0.35)",
+        glow: "0 0 0 1px hsl(var(--primary) / 0.18), 0 12px 30px -10px hsl(var(--primary) / 0.30)",
+        card: "0 1px 2px hsl(222 47% 11% / 0.04), 0 8px 24px -16px hsl(222 47% 11% / 0.12)",
+        "card-hover": "0 4px 10px hsl(222 47% 11% / 0.06), 0 24px 48px -22px hsl(222 47% 11% / 0.20)",
       },
       backgroundImage: {
         "grid-faint":
-          "linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px)",
+          "linear-gradient(to right, hsl(var(--border) / 0.8) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.8) 1px, transparent 1px)",
         "radial-fade":
-          "radial-gradient(ellipse 80% 60% at 50% -10%, hsl(var(--primary) / 0.18), transparent 70%)",
+          "radial-gradient(ellipse 80% 60% at 50% -10%, hsl(var(--primary) / 0.07), transparent 70%)",
       },
       keyframes: {
         "fade-up": {

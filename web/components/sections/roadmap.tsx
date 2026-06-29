@@ -1,4 +1,4 @@
-import { BellRing, Plug, type LucideIcon } from "lucide-react";
+import { BellRing, RefreshCw, type LucideIcon } from "lucide-react";
 
 import { Reveal } from "@/components/anim/reveal";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,12 @@ const PLANNED: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: BellRing,
     title: "Automated alerts",
-    body: "Push a Slack or email alert the moment an incoming order crosses its risk threshold.",
+    body: "Push a Slack or email alert the moment an order in your latest upload crosses its risk threshold.",
   },
   {
-    icon: Plug,
-    title: "Native store sync",
-    body: "One-click Shopify and WooCommerce integration so new orders score themselves as they arrive — no CSV.",
+    icon: RefreshCw,
+    title: "Scheduled re-scoring",
+    body: "Re-upload your order export on a schedule and track how each order's risk shifts week over week.",
   },
 ];
 

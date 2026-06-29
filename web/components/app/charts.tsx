@@ -19,16 +19,19 @@ import {
 import { Card } from "@/components/ui/card";
 import type { DashboardData, ForecastData, SegmentsData } from "@/lib/api";
 
-const VIRIDIAN = "#22dca9";
-const AMBER = "#fbbf24";
-const AXIS = "#64748b";
+const ACCENT = "#4f46e5"; // indigo (brand)
+const AMBER = "#f59e0b";
+const AXIS = "#94a3b8"; // slate-400 — readable axis labels on white
+const GRID = "hsl(220 16% 90%)";
+const CURSOR = "hsl(243 75% 59% / 0.08)";
 
 const tooltipStyle = {
-  background: "hsl(220 42% 7%)",
-  border: "1px solid hsl(218 32% 16%)",
+  background: "#ffffff",
+  border: "1px solid hsl(220 16% 90%)",
   borderRadius: "0.75rem",
   fontSize: "0.8rem",
-  color: "#e2e8f0",
+  color: "hsl(222 47% 11%)",
+  boxShadow: "0 8px 24px -12px hsl(222 47% 11% / 0.25)",
 };
 
 function ChartShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
@@ -48,12 +51,12 @@ export function RiskDistributionChart({ data }: { data: DashboardData["risk_dist
     <ChartShell title="Risk distribution" subtitle="Scored sample by predicted probability">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 32% 16%)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
           <XAxis dataKey="bucket" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} />
           <YAxis tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "hsl(220 30% 13% / 0.5)" }} />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: CURSOR }} />
           <Legend wrapperStyle={{ fontSize: "0.75rem" }} />
-          <Bar dataKey="delay" name="Delay" fill={VIRIDIAN} radius={[4, 4, 0, 0]} maxBarSize={36} />
+          <Bar dataKey="delay" name="Delay" fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={36} />
           <Bar dataKey="low_review" name="Low review" fill={AMBER} radius={[4, 4, 0, 0]} maxBarSize={36} />
         </BarChart>
       </ResponsiveContainer>
@@ -66,15 +69,15 @@ export function ValueTierChart({ data }: { data: SegmentsData["value_tiers"] }) 
     <ChartShell title="Revenue by spend tier" subtitle="Share of revenue across customer spend quartiles">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 32% 16%)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
           <XAxis dataKey="tier" tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} />
           <YAxis tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} unit="%" />
           <Tooltip
             contentStyle={tooltipStyle}
-            cursor={{ fill: "hsl(220 30% 13% / 0.5)" }}
+            cursor={{ fill: CURSOR }}
             formatter={(v: number) => [`${v}%`, "Revenue share"]}
           />
-          <Bar dataKey="revenue_share_pct" name="Revenue share" fill={VIRIDIAN} radius={[4, 4, 0, 0]} maxBarSize={56} />
+          <Bar dataKey="revenue_share_pct" name="Revenue share" fill={ACCENT} radius={[4, 4, 0, 0]} maxBarSize={56} />
         </BarChart>
       </ResponsiveContainer>
     </ChartShell>
@@ -95,7 +98,7 @@ function ForecastTooltip({ active, payload, label }: {
     <div style={tooltipStyle} className="px-3 py-2">
       <p className="mb-1 font-medium text-foreground">{label}</p>
       {actual != null ? (
-        <p style={{ color: VIRIDIAN }}>Actual: {actual.toLocaleString()}</p>
+        <p style={{ color: ACCENT }}>Actual: {actual.toLocaleString()}</p>
       ) : forecast != null ? (
         <p style={{ color: AMBER }}>Forecast: {forecast.toLocaleString()}</p>
       ) : null}
@@ -121,16 +124,16 @@ export function ForecastChart({ data }: { data: ForecastData["series"] }) {
     <ChartShell title="Order volume forecast" subtitle="Monthly orders — history and projection">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 32% 16%)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
           <XAxis dataKey="month" tick={{ fill: AXIS, fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={20} />
           <YAxis tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} />
           <Tooltip content={<ForecastTooltip />} />
           {bridge && (
-            <ReferenceLine x={bridge} stroke="hsl(218 32% 30%)" strokeDasharray="3 3"
+            <ReferenceLine x={bridge} stroke="hsl(220 9% 65%)" strokeDasharray="3 3"
               label={{ value: "forecast →", position: "insideTopRight", fill: AXIS, fontSize: 10 }} />
           )}
           <Area dataKey="range" stroke="none" fill={AMBER} fillOpacity={0.12} isAnimationActive={false} legendType="none" connectNulls={false} />
-          <Line dataKey="actual" name="Actual" stroke={VIRIDIAN} strokeWidth={2} dot={{ r: 2, fill: VIRIDIAN }} connectNulls={false} isAnimationActive={false} />
+          <Line dataKey="actual" name="Actual" stroke={ACCENT} strokeWidth={2} dot={{ r: 2, fill: ACCENT }} connectNulls={false} isAnimationActive={false} />
           <Line dataKey="forecast" name="Forecast" stroke={AMBER} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 2, fill: AMBER }} connectNulls={false} isAnimationActive={false} />
           <Legend wrapperStyle={{ fontSize: "0.75rem" }} />
         </ComposedChart>
@@ -146,15 +149,15 @@ export function OrdersOverTimeChart({ data }: { data: DashboardData["orders_over
         <AreaChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
           <defs>
             <linearGradient id="ordersFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={VIRIDIAN} stopOpacity={0.5} />
-              <stop offset="100%" stopColor={VIRIDIAN} stopOpacity={0} />
+              <stop offset="0%" stopColor={ACCENT} stopOpacity={0.5} />
+              <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 32% 16%)" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
           <XAxis dataKey="month" tick={{ fill: AXIS, fontSize: 10 }} tickLine={false} axisLine={false} minTickGap={24} />
           <YAxis tick={{ fill: AXIS, fontSize: 11 }} tickLine={false} axisLine={false} />
-          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: VIRIDIAN, strokeOpacity: 0.3 }} />
-          <Area type="monotone" dataKey="orders" stroke={VIRIDIAN} strokeWidth={2} fill="url(#ordersFill)" />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: ACCENT, strokeOpacity: 0.3 }} />
+          <Area type="monotone" dataKey="orders" stroke={ACCENT} strokeWidth={2} fill="url(#ordersFill)" />
         </AreaChart>
       </ResponsiveContainer>
     </ChartShell>

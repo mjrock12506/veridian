@@ -79,8 +79,8 @@ export function Hero() {
             className="mt-5 text-sm text-muted-foreground/80"
           >
             No sign-up — the demo runs on{" "}
-            <span className="text-foreground/80">~100k real Olist orders</span>.
-            Connecting your own store is on the roadmap.
+            <span className="text-foreground/80">~100k real Olist orders</span>, and
+            you can score your own orders by CSV anytime.
           </motion.p>
 
           <motion.dl
