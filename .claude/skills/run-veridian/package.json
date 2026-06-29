@@ -1,0 +1,13 @@
+{
+  "name": "run-veridian-driver",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Driver harness for the run-veridian skill: launches the FastAPI backend + Next.js web app and drives them (API smoke + headless-Chrome screenshots).",
+  "bin": {
+    "run-veridian": "driver.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}
