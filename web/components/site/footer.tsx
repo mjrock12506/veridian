@@ -8,7 +8,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: "Risk dashboard", href: "/dashboard" },
       { label: "AI action center", href: "/actions" },
-      { label: "Agentic workflow", href: "/agent" },
+      { label: "Integrations", href: "/connections" },
       { label: "Impact & ROI", href: "/roi" },
     ],
   },

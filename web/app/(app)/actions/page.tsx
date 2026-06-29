@@ -2,17 +2,16 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import {
   Bot, Sparkles, Send, Check, Loader2, Zap, Inbox, ShieldCheck, Flame, Mail,
   Search, ListChecks, PencilLine, Share2, CheckCircle2, Download, ChevronRight,
-  Workflow, ArrowRight,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
 import { DataBadge } from "@/components/app/data-badge";
 import { StatCard } from "@/components/app/stat-card";
 import { RiskBadge } from "@/components/app/risk-badge";
+import { AgentRun } from "@/components/app/agent-run";
 import { LoadingState, ErrorState } from "@/components/app/states";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +39,7 @@ export default function ActionsPage() {
   const [drafts, setDrafts] = React.useState<Record<string, DraftMessageResult>>({});
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [autopilot, setAutopilot] = React.useState(false);
+  const [showRun, setShowRun] = React.useState(false);
   const [rules, setRules] = React.useState({ autoDelay: true, escalate: true, digest: false });
 
   const atRisk = React.useMemo(
@@ -161,9 +161,22 @@ export default function ActionsPage() {
                 </li>
               ))}
             </ol>
-            <Link href="/agent" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-              <Workflow className="size-3.5" /> Watch the agents work one order end-to-end <ArrowRight className="size-3.5" />
-            </Link>
+            <button
+              onClick={() => setShowRun((v) => !v)}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+            >
+              {showRun ? <ChevronRight className="size-3.5 rotate-90" /> : <ChevronRight className="size-3.5" />}
+              {showRun ? "Hide the live agent run" : "Watch the agents work one order"}
+            </button>
+            <AnimatePresence>
+              {showRun && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  <div className="mt-4 border-t border-border/50 pt-4">
+                    <AgentRun queue={atRisk} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Card>
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

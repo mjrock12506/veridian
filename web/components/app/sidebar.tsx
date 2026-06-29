@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, LayoutDashboard, Zap, Workflow, Plug, MessagesSquare, SlidersHorizontal, Users, LineChart, Store, TrendingUp, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { Compass, LayoutDashboard, Zap, Plug, MessagesSquare, SlidersHorizontal, Users, LineChart, Store, TrendingUp, ArrowUpRight, type LucideIcon } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -12,8 +12,7 @@ import { cn } from "@/lib/utils";
 export const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Start here", href: "/start", icon: Compass },
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "AI actions", href: "/actions", icon: Zap },
-  { label: "Agentic workflow", href: "/agent", icon: Workflow },
+  { label: "AI action center", href: "/actions", icon: Zap },
   { label: "Integrations", href: "/connections", icon: Plug },
   { label: "Impact & ROI", href: "/roi", icon: TrendingUp },
   { label: "Customer segments", href: "/segments", icon: Users },
