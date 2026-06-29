@@ -29,15 +29,12 @@ export default function LoginPage() {
           <div className="mb-6">
             <Logo />
           </div>
-          {configured ? (
-            <React.Suspense
-              fallback={<Loader2 className="size-5 animate-spin text-muted-foreground" />}
-            >
-              <LoginForm />
-            </React.Suspense>
-          ) : (
-            <NotConfigured />
-          )}
+          {!configured && <PreviewBanner />}
+          <React.Suspense
+            fallback={<Loader2 className="size-5 animate-spin text-muted-foreground" />}
+          >
+            <LoginForm />
+          </React.Suspense>
         </Card>
       </div>
     </main>
@@ -204,33 +201,16 @@ function LoginForm() {
   );
 }
 
-function NotConfigured() {
+function PreviewBanner() {
   return (
-    <div>
-      <h1 className="font-display text-xl font-semibold tracking-tight">
-        Authentication not configured
-      </h1>
-      <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700/90">
-        <ShieldAlert className="mt-0.5 size-5 shrink-0 text-amber-400" />
-        <div>
-          <p>
-            Sign-in is disabled because the Supabase environment variables are
-            not set. The app still runs locally without authentication.
-          </p>
-          <p className="mt-2 text-amber-700/70">
-            To enable accounts, set{" "}
-            <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code>{" "}
-            and{" "}
-            <code className="font-mono text-xs">
-              NEXT_PUBLIC_SUPABASE_ANON_KEY
-            </code>{" "}
-            in <code className="font-mono text-xs">web/.env.local</code>.
-          </p>
-        </div>
-      </div>
-      <Button asChild variant="secondary" className="mt-6 w-full">
-        <Link href="/dashboard">Continue to the app</Link>
-      </Button>
+    <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
+      <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+      <p className="leading-relaxed">
+        <span className="font-medium">Preview.</span> Email and Google sign-in are fully built —
+        add your Supabase keys to activate them (2 min). See{" "}
+        <code className="font-mono text-xs">docs/AUTH_SETUP.md</code>. The demo stays usable
+        without an account.
+      </p>
     </div>
   );
 }

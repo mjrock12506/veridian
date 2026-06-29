@@ -89,6 +89,16 @@ class BatchScoreRequest(BaseModel):
     )
 
 
+class DraftMessageRequest(BaseModel):
+    """Ask the AI to draft a proactive customer message for an at-risk order."""
+
+    model_config = {"extra": "forbid"}
+
+    order: dict | None = Field(default=None, description="Known order facts for context.")
+    delay_risk: str | None = Field(default=None, description="low / medium / high")
+    low_review_risk: str | None = Field(default=None, description="low / medium / high")
+
+
 class AskRequest(BaseModel):
     """A natural-language question for the copilot, with an optional order."""
 

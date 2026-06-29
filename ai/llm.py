@@ -55,12 +55,16 @@ def chat(
     model: str | None = None,
     temperature: float | None = None,
     max_tokens: int | None = None,
+    max_retries: int | None = None,
 ):
     """Call the configured LLM and return the raw LiteLLM response.
 
     Retries on transient rate-limit / availability errors with exponential
-    backoff, honouring a provider-suggested delay when one is given.
+    backoff, honouring a provider-suggested delay when one is given. Pass
+    ``max_retries`` to fail fast (e.g. 1) for latency-sensitive, best-effort
+    callers that prefer a quick fallback over waiting out a backoff.
     """
+    retries = max_retries or config.LLM_MAX_RETRIES
     if not config.provider_key_present():
         raise LLMUnavailable(
             f"No API key found for provider in LLM_MODEL={config.LLM_MODEL!r}. "
@@ -78,7 +82,7 @@ def chat(
         kwargs["tool_choice"] = "auto"
 
     last_err: Exception | None = None
-    for attempt in range(config.LLM_MAX_RETRIES):
+    for attempt in range(retries):
         try:
             return litellm.completion(**kwargs)
         except (litellm.RateLimitError, litellm.ServiceUnavailableError) as err:
@@ -89,7 +93,7 @@ def chat(
                     f"({config.LLM_MODEL}). Set LLM_MODEL to another provider or "
                     "add credits."
                 ) from err
-            if attempt == config.LLM_MAX_RETRIES - 1:
+            if attempt == retries - 1:
                 break
             time.sleep(_retry_delay_seconds(err, default=2.0 * (attempt + 1)))
         except litellm.AuthenticationError as err:
@@ -101,5 +105,5 @@ def chat(
             raise LLMUnavailable(f"Request rejected by provider: {err}") from err
 
     raise LLMUnavailable(
-        f"LLM unavailable after {config.LLM_MAX_RETRIES} attempts: {last_err}"
+        f"LLM unavailable after {retries} attempts: {last_err}"
     )

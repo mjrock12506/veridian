@@ -143,6 +143,13 @@ export interface BatchScoreResult {
   };
 }
 
+export interface DraftMessageResult {
+  message: string;
+  source: "ai" | "template";
+  llm_model?: string;
+  error?: string;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -185,6 +192,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ orders }),
     }),
+  draftMessage: (body: { order?: Record<string, unknown>; delay_risk?: string; low_review_risk?: string }) =>
+    request<DraftMessageResult>("/draft-message", { method: "POST", body: JSON.stringify(body) }),
   order: (id: string) => request<OrderDetail>(`/orders/${id}`),
   ask: (question: string, order?: Record<string, unknown>) =>
     request<AskResponse>("/ask", {

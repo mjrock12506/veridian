@@ -25,6 +25,7 @@ from api.schemas import (
     AskRequest,
     AskResponse,
     BatchScoreRequest,
+    DraftMessageRequest,
     HealthResponse,
     LowReviewFeatures,
     ModelInfo,
@@ -130,6 +131,15 @@ def score_batch(request: BatchScoreRequest) -> dict:
     except Exception as exc:  # malformed rows etc. — a client problem, not a 500
         logger.exception("Batch scoring failed")
         raise HTTPException(status_code=400, detail=f"Could not score the uploaded orders: {exc}") from exc
+
+
+@app.post("/draft-message")
+def draft_message(request: DraftMessageRequest) -> dict:
+    """AI-draft a proactive customer message for an at-risk order (Action Center).
+    Always returns a usable message — falls back to a template if the LLM is offline."""
+    from ai import messaging
+
+    return messaging.draft(request.order, request.delay_risk or "", request.low_review_risk or "")
 
 
 @app.post("/ask", response_model=AskResponse)

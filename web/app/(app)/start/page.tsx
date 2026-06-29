@@ -85,8 +85,9 @@ export default function StartPage() {
             <div className="min-w-0 flex-1">
               <h2 className="font-display text-lg font-semibold text-foreground">Act on the risk</h2>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Every at-risk order comes with a recommended next step — so a score turns into
-                a save before the cost is locked in.
+                The AI action center triages every at-risk order by priority, drafts the
+                customer message, and lets auto-pilot work the queue — so a score turns into a
+                save before the cost is locked in.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {ACTIONS.map((a) => (
@@ -98,6 +99,12 @@ export default function StartPage() {
                   </span>
                 ))}
               </div>
+              <Link
+                href="/actions"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              >
+                Open the AI action center <ArrowRight className="size-4" />
+              </Link>
             </div>
           </div>
         </Card>

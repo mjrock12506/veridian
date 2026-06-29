@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, PackageSearch } from "lucide-react";
+import { ArrowRight, PackageSearch, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { OrderRiskConsole } from "@/components/sections/order-risk-console";
@@ -63,25 +63,33 @@ export function Hero() {
           >
             <Button size="lg" asChild>
               <a href="/dashboard">
-                Explore the demo dashboard
+                Explore the demo
                 <ArrowRight className="size-4" />
               </a>
             </Button>
             <Button size="lg" variant="secondary" asChild>
-              <a href="#how-it-works">See how it works</a>
+              <a href="/connect">
+                <Upload className="size-4" />
+                Score your orders
+              </a>
             </Button>
           </motion.div>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease, delay: 0.3 }}
-            className="mt-5 text-sm text-muted-foreground/80"
+            className="mt-6 flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:gap-6"
           >
-            No sign-up — the demo runs on{" "}
-            <span className="text-foreground/80">~100k real Olist orders</span>, and
-            you can score your own orders by CSV anytime.
-          </motion.p>
+            <span className="inline-flex items-center gap-2">
+              <span className="size-2 shrink-0 rounded-full bg-amber-500" />
+              <span><strong className="font-medium text-foreground">Demo</strong> — ~100k public Olist orders, no sign-up</span>
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="size-2 shrink-0 rounded-full bg-emerald-500" />
+              <span><strong className="font-medium text-foreground">Your data</strong> — scored in your browser, never stored</span>
+            </span>
+          </motion.div>
 
           <motion.dl
             initial={{ opacity: 0, y: 22 }}
