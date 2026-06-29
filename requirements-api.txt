@@ -4,7 +4,7 @@
 # FastAPI, AND run the AI copilot (/ask).
 fastapi==0.137.1
 uvicorn[standard]==0.49.0
-pydantic==2.13.4
+pydantic==2.12.5  # match litellm's exact pin
 scikit-learn==1.9.0
 xgboost==3.3.0
 numpy==2.4.6
@@ -14,7 +14,7 @@ joblib==1.5.3
 
 # Warehouse access for the /dashboard + /orders endpoints.
 SQLAlchemy==2.0.51
-python-dotenv==1.2.2
+python-dotenv==1.0.1  # pinned to match litellm's exact dependency (avoids a pip resolver conflict)
 # Postgres driver (production warehouse). SQLite needs no driver, so this is
 # only exercised when DATABASE_URL points at Postgres.
 psycopg[binary]==3.2.3
