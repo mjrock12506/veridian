@@ -253,7 +253,13 @@ export const api = {
       ? Promise.resolve(cannedAsk(question))
       : request<AskResponse>("/ask", {
           method: "POST",
-          body: JSON.stringify({ question, order: order ?? null, data_context: dataContext ?? null }),
+          // Only include data_context when present, so a backend that predates the
+          // field (strict schema) still accepts a plain copilot question.
+          body: JSON.stringify({
+            question,
+            order: order ?? null,
+            ...(dataContext ? { data_context: dataContext } : {}),
+          }),
         }),
   predictDelay: (features: Record<string, unknown>) =>
     request<PredictionResponse>("/predict/delay", {
