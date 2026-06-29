@@ -40,12 +40,16 @@ LLM_MAX_TOOL_ROUNDS = int(os.environ.get("LLM_MAX_TOOL_ROUNDS", "3"))
 # (e.g. a free-tier per-minute token cap). Only those whose provider key is
 # present are attempted — so a single key still helps: a smaller, higher-
 # throughput model on the same provider (Groq 8b) absorbs bursts, and a second
-# provider (Gemini) covers a full outage. Override with LLM_FALLBACKS.
+# provider covers a full outage. All defaults are genuinely free-tier (no card):
+# Groq 8b reuses the GROQ key; Cerebras and OpenRouter (':free' models) each have
+# a free tier. Set whichever key you can get. Override with LLM_FALLBACKS.
 LLM_FALLBACKS = [
     m.strip()
     for m in os.environ.get(
         "LLM_FALLBACKS",
-        "groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash,gemini/gemini-2.0-flash",
+        "groq/llama-3.1-8b-instant,"
+        "cerebras/llama-3.3-70b,"
+        "openrouter/meta-llama/llama-3.3-70b-instruct:free",
     ).split(",")
     if m.strip()
 ]
@@ -93,6 +97,8 @@ def provider_key_present(model: str | None = None) -> bool:
     key_env = {
         "gemini": "GEMINI_API_KEY",
         "groq": "GROQ_API_KEY",
+        "cerebras": "CEREBRAS_API_KEY",
+        "openrouter": "OPENROUTER_API_KEY",
         "anthropic": "ANTHROPIC_API_KEY",
         "openai": "OPENAI_API_KEY",
     }.get(provider)
