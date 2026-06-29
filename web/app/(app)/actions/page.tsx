@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   Bot, Sparkles, Send, Check, Loader2, Zap, Inbox, ShieldCheck, Flame, Mail,
   Search, ListChecks, PencilLine, Share2, CheckCircle2, Download, ChevronRight,
+  Workflow, ArrowRight,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
@@ -16,43 +18,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api, type ScoredOrder, type DraftMessageResult } from "@/lib/api";
 import { DESTINATIONS, destination, routeFor } from "@/lib/connectors";
+import { priorityOf, playbook, composeMessage, rank } from "@/lib/playbook";
 import { useApi } from "@/lib/use-api";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const MAX_QUEUE = 24;
-
-type Priority = "high" | "medium";
-
-function priorityOf(o: ScoredOrder): Priority | null {
-  if (o.delay_risk === "high" || o.low_review_risk === "high") return "high";
-  if (o.delay_risk === "medium" || o.low_review_risk === "medium") return "medium";
-  return null;
-}
-function playbook(o: ScoredOrder): string {
-  if (o.delay_risk === "high") return "Expedite shipping + notify the customer";
-  if (o.low_review_risk === "high") return "Proactive apology + support outreach";
-  if (o.delay_risk === "medium") return "Confirm the delivery ETA with the carrier";
-  return "Schedule a post-delivery check-in";
-}
-
-// Instant, on-brand draft tailored to the order's risk + details. Kept client-side
-// so the demo is snappy and reliable for a quick visitor (the /draft-message LLM
-// endpoint stays in the codebase to show the integration; this powers the demo).
-function composeMessage(o: ScoredOrder): string {
-  const where = o.customer_state ? ` in ${o.customer_state}` : "";
-  const what = o.main_category ? ` of ${o.main_category.replace(/_/g, " ")}` : "";
-  if (o.delay_risk === "high" || o.delay_risk === "medium") {
-    return `Hi! We're keeping a close eye on your recent order${what} to make sure it reaches you${where} as quickly as possible. If the delivery timeline shifts we'll let you know right away — and you can reply here any time. Thanks so much for your patience!`;
-  }
-  if (o.low_review_risk === "high" || o.low_review_risk === "medium") {
-    return `Hi! Thank you for your order${what}. We want to be sure you're completely happy with it — if anything isn't quite right, just reply and we'll put it right straight away. We really appreciate your business!`;
-  }
-  return `Hi! Thanks for your order${what} — it's on track. We're here if you need anything at all, so don't hesitate to reach out. We appreciate you!`;
-}
-const rank = (o: ScoredOrder) =>
-  (priorityOf(o) === "high" ? 1000 : 0) + Math.max(o.delay_probability, o.low_review_probability);
 
 const PIPELINE = [
   { icon: Search, label: "Scan & score", sub: "every order" },
@@ -189,6 +161,9 @@ export default function ActionsPage() {
                 </li>
               ))}
             </ol>
+            <Link href="/agent" className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+              <Workflow className="size-3.5" /> Watch the agents work one order end-to-end <ArrowRight className="size-3.5" />
+            </Link>
           </Card>
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

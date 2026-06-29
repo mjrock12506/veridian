@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Upload, Sparkles, ArrowRight, LayoutDashboard, Users, LineChart, MessagesSquare,
+  Zap, Workflow, TrendingUp,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
@@ -9,6 +10,9 @@ import { Card } from "@/components/ui/card";
 
 const DEMO_LINKS = [
   { href: "/dashboard", label: "Risk dashboard", icon: LayoutDashboard },
+  { href: "/actions", label: "AI action center", icon: Zap },
+  { href: "/agent", label: "Agentic workflow", icon: Workflow },
+  { href: "/roi", label: "Impact & ROI", icon: TrendingUp },
   { href: "/segments", label: "Customer segments", icon: Users },
   { href: "/forecast", label: "Demand forecast", icon: LineChart },
   { href: "/copilot", label: "AI copilot", icon: MessagesSquare },
@@ -99,12 +103,17 @@ export default function StartPage() {
                   </span>
                 ))}
               </div>
-              <Link
-                href="/actions"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-              >
-                Open the AI action center <ArrowRight className="size-4" />
-              </Link>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+                <Link href="/actions" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                  Open the AI action center <ArrowRight className="size-4" />
+                </Link>
+                <Link href="/agent" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                  Watch the agents work an order <ArrowRight className="size-4" />
+                </Link>
+                <Link href="/roi" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+                  See the $ impact <ArrowRight className="size-4" />
+                </Link>
+              </div>
             </div>
           </div>
         </Card>
