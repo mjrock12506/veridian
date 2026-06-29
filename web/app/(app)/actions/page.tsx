@@ -126,8 +126,13 @@ export default function ActionsPage() {
     URL.revokeObjectURL(url);
   }
 
+  // Funnel: scanned -> flagged at-risk -> queued for you now. The dashboard scores
+  // a sample, so extrapolate the at-risk rate to the full book for an honest,
+  // monotonically-narrowing story (never fewer "flagged" than are "queued").
   const scanned = data?.summary.total_orders ?? 0;
-  const flagged = data?.summary.high_risk_orders ?? 0;
+  const sampleSize = data?.orders.length || 1;
+  const atRiskInSample = data ? data.orders.filter((o) => priorityOf(o)).length : 0;
+  const flagged = Math.max(queue.length, Math.round((atRiskInSample / sampleSize) * scanned));
 
   return (
     <div>
