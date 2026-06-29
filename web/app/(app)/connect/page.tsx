@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { StatCard } from "@/components/app/stat-card";
 import { RiskBadge } from "@/components/app/risk-badge";
 import { DataBadge } from "@/components/app/data-badge";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api, type BatchScoreResult, type BatchScoreRow } from "@/lib/api";
@@ -113,9 +114,10 @@ export default function ConnectPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Connect your store"
-        description="Export your orders from Shopify, Amazon Seller Central, or any platform as a CSV — then paste or upload it here. Every order gets a calibrated delivery-delay and low-review risk. No API and no sign-up; missing columns are imputed and nothing is stored."
+        description="Export your orders from Shopify, Amazon Seller Central, or any platform as a CSV, then upload it here. Scoring your own orders needs a free account — your data is processed in your browser, never stored, and never shared."
       />
 
+      <RequireAuth next="/connect">
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
         <Card className="flex flex-col gap-4">
           <textarea
@@ -172,6 +174,7 @@ export default function ConnectPage() {
           {data && !loading && <Results data={data} />}
         </div>
       </div>
+      </RequireAuth>
     </div>
   );
 }

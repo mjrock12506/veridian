@@ -60,7 +60,8 @@ def draft(order: dict | None, delay_risk: str, low_review_risk: str) -> dict:
             [{"role": "system", "content": _SYSTEM}, {"role": "user", "content": user}],
             max_tokens=180,
             temperature=0.4,
-            max_retries=1,  # latency-sensitive: fall back to the template fast, don't wait out a backoff
+            max_retries=1,   # latency-sensitive: fall back to the template fast, don't wait out a backoff
+            timeout=12,      # bound the request so a slow provider can't hang the UI
         )
         text = (resp.choices[0].message.content or "").strip()
         if not text:

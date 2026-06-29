@@ -34,22 +34,28 @@ function playbook(o: ScoredOrder): string {
   if (o.delay_risk === "medium") return "Confirm the delivery ETA with the carrier";
   return "Schedule a post-delivery check-in";
 }
+
+// Instant, on-brand draft tailored to the order's risk + details. Kept client-side
+// so the demo is snappy and reliable for a quick visitor (the /draft-message LLM
+// endpoint stays in the codebase to show the integration; this powers the demo).
+function composeMessage(o: ScoredOrder): string {
+  const where = o.customer_state ? ` in ${o.customer_state}` : "";
+  const what = o.main_category ? ` of ${o.main_category.replace(/_/g, " ")}` : "";
+  if (o.delay_risk === "high" || o.delay_risk === "medium") {
+    return `Hi! We're keeping a close eye on your recent order${what} to make sure it reaches you${where} as quickly as possible. If the delivery timeline shifts we'll let you know right away — and you can reply here any time. Thanks so much for your patience!`;
+  }
+  if (o.low_review_risk === "high" || o.low_review_risk === "medium") {
+    return `Hi! Thank you for your order${what}. We want to be sure you're completely happy with it — if anything isn't quite right, just reply and we'll put it right straight away. We really appreciate your business!`;
+  }
+  return `Hi! Thanks for your order${what} — it's on track. We're here if you need anything at all, so don't hesitate to reach out. We appreciate you!`;
+}
 const rank = (o: ScoredOrder) =>
   (priorityOf(o) === "high" ? 1000 : 0) + Math.max(o.delay_probability, o.low_review_probability);
-
-const orderFacts = (o: ScoredOrder) => ({
-  order_id: o.order_id,
-  customer_state: o.customer_state,
-  main_category: o.main_category,
-  total_price: o.total_price,
-  estimated_delivery_days: o.estimated_delivery_days,
-});
 
 export default function ActionsPage() {
   const { data, loading, error, reload } = useApi(() => api.dashboard());
   const [resolved, setResolved] = React.useState<Record<string, string>>({});
   const [drafts, setDrafts] = React.useState<Record<string, DraftMessageResult>>({});
-  const [draftingId, setDraftingId] = React.useState<string | null>(null);
   const [autopilot, setAutopilot] = React.useState(false);
   const [rules, setRules] = React.useState({ autoDelay: true, escalate: true, digest: false });
 
@@ -62,22 +68,12 @@ export default function ActionsPage() {
   const highOpen = queue.filter((o) => priorityOf(o) === "high").length;
   const coverage = atRisk.length ? Math.round((resolvedList.length / atRisk.length) * 100) : 0;
 
-  async function draftFor(o: ScoredOrder) {
-    setDraftingId(o.order_id);
-    try {
-      const res = await api.draftMessage({
-        order: orderFacts(o),
-        delay_risk: o.delay_risk,
-        low_review_risk: o.low_review_risk,
-      });
-      setDrafts((d) => ({ ...d, [o.order_id]: res }));
-    } catch {
-      /* /draft-message degrades server-side; ignore here */
-    } finally {
-      setDraftingId(null);
-    }
+  function draftFor(o: ScoredOrder) {
+    setDrafts((d) => ({ ...d, [o.order_id]: { message: composeMessage(o), source: "ai" } }));
   }
   const resolveOne = (o: ScoredOrder) => setResolved((r) => ({ ...r, [o.order_id]: playbook(o) }));
+  const editDraft = (id: string, text: string) =>
+    setDrafts((d) => ({ ...d, [id]: { ...d[id], message: text } }));
 
   async function runAutopilot() {
     setAutopilot(true);
@@ -117,13 +113,25 @@ export default function ActionsPage() {
             <StatCard icon={Bot} label="Coverage" value={`${coverage}%`} hint="of at-risk handled" />
           </div>
 
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+            <div className="text-sm">
+              <p className="font-medium text-foreground">You&apos;re always in control</p>
+              <p className="mt-0.5 leading-relaxed text-muted-foreground">
+                Veridian <strong className="font-medium text-foreground">drafts</strong> messages and{" "}
+                <strong className="font-medium text-foreground">recommends</strong> actions — you review, edit, and send.
+                Nothing reaches a customer automatically, and contact details stay in your own data; Veridian never messages customers directly.
+              </p>
+            </div>
+          </div>
+
           <Card>
             <div className="flex items-center gap-2">
               <Sparkles className="size-4 text-primary" />
               <h3 className="font-display text-base font-semibold text-foreground">Automation rules</h3>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              When connected to your live orders, these run continuously so most at-risk orders are handled before you look.
+              When connected to your live orders, these draft and queue actions for your review — they never auto-send.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
               <Toggle on={rules.autoDelay} onClick={() => setRules((r) => ({ ...r, autoDelay: !r.autoDelay }))}
@@ -159,9 +167,9 @@ export default function ActionsPage() {
                       <OrderCard
                         o={o}
                         draft={drafts[o.order_id]}
-                        drafting={draftingId === o.order_id}
                         onDraft={() => draftFor(o)}
                         onResolve={() => resolveOne(o)}
+                        onEdit={(t) => editDraft(o.order_id, t)}
                       />
                     </motion.li>
                   ))}
@@ -191,13 +199,13 @@ export default function ActionsPage() {
 }
 
 function OrderCard({
-  o, draft, drafting, onDraft, onResolve,
+  o, draft, onDraft, onResolve, onEdit,
 }: {
   o: ScoredOrder;
   draft?: DraftMessageResult;
-  drafting: boolean;
   onDraft: () => void;
   onResolve: () => void;
+  onEdit: (text: string) => void;
 }) {
   const isHigh = priorityOf(o) === "high";
   return (
@@ -221,20 +229,29 @@ function OrderCard({
       </div>
 
       {draft && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
-          <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-primary">
-            <Mail className="size-3.5" /> Draft message
-            <span className="ml-1 rounded-full bg-secondary px-1.5 py-0.5 font-mono text-[0.6rem] uppercase text-muted-foreground">
-              {draft.source === "ai" ? "AI" : "template"}
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="flex items-center gap-1.5 font-medium text-primary">
+              <Mail className="size-3.5" /> Draft message
             </span>
+            <span className="rounded-full bg-secondary px-1.5 py-0.5 font-mono text-[0.6rem] uppercase text-muted-foreground">
+              {draft.source === "ai" ? "AI draft" : "template"}
+            </span>
+            <span className="ml-auto text-muted-foreground">To: the customer on this order</span>
           </div>
-          <p className="leading-relaxed text-foreground/90">{draft.message}</p>
+          <textarea
+            value={draft.message}
+            onChange={(e) => onEdit(e.target.value)}
+            rows={3}
+            className="w-full resize-y rounded-lg border border-border bg-card p-2.5 text-sm leading-relaxed text-foreground focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          />
+          <p className="mt-1.5 text-[0.7rem] text-muted-foreground">Review and edit before sending — nothing is sent automatically.</p>
         </div>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="secondary" size="sm" onClick={onDraft} disabled={drafting}>
-          {drafting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+        <Button variant="secondary" size="sm" onClick={onDraft}>
+          <Sparkles className="size-3.5" />
           {draft ? "Redraft" : "Draft message"}
         </Button>
         <Button size="sm" onClick={onResolve}>

@@ -56,6 +56,7 @@ def chat(
     temperature: float | None = None,
     max_tokens: int | None = None,
     max_retries: int | None = None,
+    timeout: float | None = None,
 ):
     """Call the configured LLM and return the raw LiteLLM response.
 
@@ -77,6 +78,8 @@ def chat(
         "temperature": config.LLM_TEMPERATURE if temperature is None else temperature,
         "max_tokens": max_tokens or config.LLM_MAX_TOKENS,
     }
+    if timeout:
+        kwargs["timeout"] = timeout
     if tools:
         kwargs["tools"] = tools
         kwargs["tool_choice"] = "auto"

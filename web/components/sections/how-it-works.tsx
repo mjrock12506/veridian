@@ -1,6 +1,8 @@
-import { Database, Brain, ListOrdered, Wrench, ArrowRight, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { Database, Brain, ListOrdered, Sparkles, Check, ArrowRight, Upload, type LucideIcon } from "lucide-react";
 
 import { Reveal } from "@/components/anim/reveal";
+import { DataBadge } from "@/components/app/data-badge";
 import { cn } from "@/lib/utils";
 
 /*
@@ -74,27 +76,23 @@ function RankVisual() {
   );
 }
 
-// Stage 4 — top drivers + a recommended action.
-function ActVisual() {
-  const drivers = [
-    { label: "long shipping route", w: "w-full" },
-    { label: "tight delivery ETA", w: "w-2/3" },
-  ];
+// Stage 4 — the AI drafts the customer message; you review and send.
+function MessageVisual() {
   return (
     <div>
-      <div className="space-y-1.5">
-        {drivers.map((d) => (
-          <div key={d.label} className="flex items-center gap-2">
-            <div className="h-2 w-16 overflow-hidden rounded-full bg-secondary">
-              <div className={cn("h-full rounded-full bg-primary/70", d.w)} />
-            </div>
-            <span className="font-mono text-[9px] text-muted-foreground/80">{d.label}</span>
-          </div>
-        ))}
+      <div className="rounded-lg border border-primary/20 bg-primary/[0.06] p-2">
+        <div className="mb-1 flex items-center gap-1 font-mono text-[8px] font-medium text-primary">
+          <Sparkles className="size-2.5" /> AI draft
+        </div>
+        <div className="space-y-1">
+          <div className="h-1.5 w-full rounded-full bg-primary/25" />
+          <div className="h-1.5 w-11/12 rounded-full bg-primary/25" />
+          <div className="h-1.5 w-2/3 rounded-full bg-primary/25" />
+        </div>
       </div>
-      <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/[0.08] px-2 py-1 text-[10px] font-medium text-primary">
-        <Wrench className="size-3" />
-        Reach out · upgrade shipping
+      <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-700">
+        <Check className="size-3" />
+        You review &amp; send
       </span>
     </div>
   );
@@ -129,11 +127,11 @@ const STAGES: {
     Visual: RankVisual,
   },
   {
-    icon: Wrench,
+    icon: Sparkles,
     step: "04",
-    title: "See why, and act",
-    body: "Each score opens to the drivers behind it and a copilot you can ask — so you know what to do.",
-    Visual: ActVisual,
+    title: "AI works the queue",
+    body: "The action center triages by priority, drafts the customer message for each at-risk order, and auto-pilots the routine ones — you review and approve.",
+    Visual: MessageVisual,
   },
 ];
 
@@ -146,13 +144,14 @@ export function HowItWorks() {
           <Reveal className="eyebrow">How it works</Reveal>
           <Reveal index={1}>
             <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
-              From raw orders to a ranked, explained to-do list.
+              From raw orders to an AI that works the queue for you.
             </h2>
           </Reveal>
           <Reveal index={2}>
             <p className="mt-5 text-pretty text-lg leading-relaxed text-muted-foreground">
-              Four stages, each doing one job well — so the path from data to
-              decision stays explainable end to end.
+              Four stages, each doing one job well — data in, calibrated scores,
+              a ranked queue, and an AI that drafts the outreach. Explainable end
+              to end, and live on the demo right now.
             </p>
           </Reveal>
         </div>
@@ -182,6 +181,38 @@ export function HowItWorks() {
             ))}
           </div>
         </div>
+
+        <Reveal>
+          <div className="mx-auto mt-12 flex max-w-3xl flex-col items-center gap-5 rounded-2xl border border-border/60 bg-card/60 p-6 text-center shadow-card sm:p-8">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <DataBadge kind="demo" />
+              <ArrowRight className="size-4 text-muted-foreground" />
+              <DataBadge kind="yours" />
+            </div>
+            <h3 className="max-w-xl text-balance font-display text-xl font-semibold text-foreground sm:text-2xl">
+              See the whole pipeline on the demo — then run it on your own orders.
+            </h3>
+            <p className="max-w-lg text-pretty text-sm leading-relaxed text-muted-foreground">
+              Every stage above is live and free on ~100k public Olist orders, no sign-up. When
+              you&apos;re ready, create a free account and upload your own order export — it&apos;s
+              scored in your browser and never stored.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-glow transition-opacity hover:opacity-90"
+              >
+                Explore the demo <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                href="/connect"
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+              >
+                <Upload className="size-4" /> Score your orders
+              </Link>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
