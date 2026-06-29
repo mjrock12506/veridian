@@ -18,7 +18,7 @@ export function DataNote() {
             About the data
           </Reveal>
           <Reveal index={1}>
-            <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
+            <h2 className="mt-5 text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
               Real data now, your data next.
             </h2>
           </Reveal>

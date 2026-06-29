@@ -95,7 +95,7 @@ export function DemoGuide() {
         <div className="mx-auto max-w-2xl text-center">
           <Reveal className="eyebrow">What you can do</Reveal>
           <Reveal index={1}>
-            <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
+            <h2 className="mt-5 text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
               Seven things to try — start with the dashboard.
             </h2>
           </Reveal>

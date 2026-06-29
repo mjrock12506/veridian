@@ -143,7 +143,7 @@ export function HowItWorks() {
         <div className="mx-auto max-w-2xl text-center">
           <Reveal className="eyebrow">How it works</Reveal>
           <Reveal index={1}>
-            <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
+            <h2 className="mt-5 text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
               From raw orders to an AI that works the queue for you.
             </h2>
           </Reveal>

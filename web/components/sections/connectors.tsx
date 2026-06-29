@@ -18,7 +18,7 @@ export function Connectors() {
             <Database className="size-3.5 text-primary" /> Connect your stack
           </Reveal>
           <Reveal index={1}>
-            <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
+            <h2 className="mt-5 text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
               Plugs into where your orders live — and where your team works.
             </h2>
           </Reveal>

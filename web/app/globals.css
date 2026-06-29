@@ -68,14 +68,35 @@
     @apply inline-flex items-center gap-2 rounded-full border border-border/70 bg-secondary/40 px-3 py-1 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground;
   }
 
-  /* Reusable gradient text for the accent word in headlines. */
+  /* Reusable gradient text for the accent word in headlines — with a slow,
+     premium shimmer that pans the gradient (disabled for reduced motion). */
   .text-gradient {
-    @apply bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-500 bg-clip-text text-transparent;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      100deg,
+      hsl(243 75% 56%),
+      hsl(258 80% 62%),
+      hsl(199 89% 48%),
+      hsl(243 75% 56%)
+    );
+    background-size: 220% auto;
+    animation: gradient-pan 7s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .text-gradient {
+      animation: none;
+    }
   }
 
   /* Subtle hairline section divider. */
   .hairline {
     @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+}
+
+@keyframes gradient-pan {
+  to {
+    background-position: 220% center;
   }
 }
 

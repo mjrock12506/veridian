@@ -23,7 +23,7 @@ export function Roadmap() {
         <div className="mx-auto max-w-2xl text-center">
           <Reveal className="eyebrow">Roadmap</Reveal>
           <Reveal index={1}>
-            <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
+            <h2 className="mt-5 text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
               What&apos;s next
             </h2>
           </Reveal>

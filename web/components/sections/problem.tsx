@@ -27,7 +27,7 @@ export function Problem() {
             The problem
           </Reveal>
           <Reveal index={1}>
-            <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
+            <h2 className="mt-5 text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
               By the time you see the problem, you&apos;ve already paid for it.
             </h2>
           </Reveal>

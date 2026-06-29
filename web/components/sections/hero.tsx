@@ -37,11 +37,11 @@ export function Hero() {
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease, delay: 0.06 }}
-            className="mt-6 text-balance font-display text-display font-bold leading-[1.05] text-foreground"
+            className="mt-6 text-balance font-display text-display font-extrabold tracking-tight text-foreground"
           >
-            Predict which e-commerce orders will{" "}
-            <span className="text-gradient">go wrong</span> — before they do — and
-            know how to fix them.
+            Predict the e-commerce orders that will{" "}
+            <span className="text-gradient">go wrong</span> — and fix them before
+            they do.
           </motion.h1>
 
           <motion.p

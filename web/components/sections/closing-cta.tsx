@@ -14,7 +14,7 @@ export function ClosingCta() {
             <div className="pointer-events-none absolute -top-px left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
             <div className="relative mx-auto max-w-2xl">
-              <h2 className="text-balance font-display text-display-sm font-bold text-foreground">
+              <h2 className="text-balance font-display text-display-sm font-extrabold tracking-tight text-foreground">
                 Turn order data into prevented losses.
               </h2>
               <p className="mx-auto mt-5 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
