@@ -1,9 +1,11 @@
 /**
  * Typed client for the Veridian FastAPI backend.
- * Base URL comes from NEXT_PUBLIC_API_URL (falls back to the local dev server).
+ * Base URL comes from NEXT_PUBLIC_API_URL. When it's unset/empty the app runs in
+ * the static portfolio demo (read-only pages served from /public/demo) — so a
+ * deploy with no backend, or a fresh clone, works out of the box. Set it in
+ * web/.env.local (e.g. http://localhost:8000) to use a live backend.
  */
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export type RiskLevel = "low" | "medium" | "high";
 
