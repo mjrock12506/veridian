@@ -3,6 +3,7 @@ import { Footer } from "@/components/site/footer";
 import { Hero } from "@/components/sections/hero";
 import { Problem } from "@/components/sections/problem";
 import { HowItWorks } from "@/components/sections/how-it-works";
+import { ActionCenter } from "@/components/sections/action-center";
 import { DemoGuide } from "@/components/sections/demo-guide";
 import { DataNote } from "@/components/sections/data-note";
 import { Roadmap } from "@/components/sections/roadmap";
@@ -17,6 +18,7 @@ export default function Home() {
         <div className="hairline container" />
         <Problem />
         <HowItWorks />
+        <ActionCenter />
         <DemoGuide />
         <DataNote />
         <Roadmap />
