@@ -13,6 +13,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { DESTINATIONS, type Connector } from "@/lib/connectors";
+import { getWebhook, setWebhook } from "@/lib/live-mode";
+import { useAuth } from "@/components/auth/auth-provider";
 import { cn } from "@/lib/utils";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -45,18 +47,27 @@ const SAMPLE_PAYLOAD = {
 };
 
 function LiveWebhook() {
+  const { user } = useAuth();
   const [url, setUrl] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [result, setResult] = React.useState<{ ok: boolean; status: number; response: string } | null>(null);
   const [err, setErr] = React.useState<string | null>(null);
+  const [saved, setSaved] = React.useState(false);
 
   React.useEffect(() => {
-    setUrl(localStorage.getItem("veridian_webhook") || "");
+    setUrl(getWebhook());
   }, []);
+
+  // Persist (and broadcast to the Action Center) as the user types, debounced.
+  function onChange(v: string) {
+    setUrl(v);
+    setWebhook(v);
+    setSaved(true);
+  }
 
   async function sendTest() {
     setBusy(true); setResult(null); setErr(null);
-    localStorage.setItem("veridian_webhook", url.trim());
+    setWebhook(url.trim());
     try {
       setResult(await api.dispatchWebhook(url.trim(), SAMPLE_PAYLOAD));
     } catch (e) {
@@ -82,7 +93,7 @@ function LiveWebhook() {
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <input
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           placeholder="https://hooks.slack.com/services/…"
           className="h-11 flex-1 rounded-xl border border-border bg-card px-3.5 font-mono text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-ring/40"
         />
@@ -90,6 +101,15 @@ function LiveWebhook() {
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Send a test event
         </Button>
       </div>
+      {saved && url.trim() && (
+        <p className={cn("mt-2 flex items-center gap-1.5 text-xs", user ? "text-emerald-700" : "text-amber-700")}>
+          {user ? (
+            <><Check className="size-3.5" /> Saved — Live mode is on. Resolving orders in the AI action center now delivers here for real.</>
+          ) : (
+            <><AlertCircle className="size-3.5" /> Saved. <strong>Sign in</strong> to switch the action center into live delivery (otherwise actions stay simulated).</>
+          )}
+        </p>
+      )}
       {result && (
         <div className={cn("mt-3 rounded-xl border p-3 text-sm", result.ok ? "border-emerald-500/30 bg-emerald-500/5" : "border-rose-500/30 bg-rose-500/5")}>
           <p className={cn("flex items-center gap-1.5 font-medium", result.ok ? "text-emerald-700" : "text-rose-700")}>

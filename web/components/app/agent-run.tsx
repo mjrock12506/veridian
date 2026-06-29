@@ -11,9 +11,10 @@ import {
 import { RiskBadge } from "@/components/app/risk-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { type ScoredOrder } from "@/lib/api";
+import { api, type ScoredOrder } from "@/lib/api";
 import { priorityOf, playbook, composeMessage } from "@/lib/playbook";
 import { destination, routeFor } from "@/lib/connectors";
+import { useLiveMode } from "@/lib/live-mode";
 import { pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -33,10 +34,26 @@ const AGENTS: Agent[] = [
   AI Action Center so "watch one order" and "work the whole queue" live on one page.
 */
 export function AgentRun({ queue }: { queue: ScoredOrder[] }) {
+  const live = useLiveMode();
   const [idx, setIdx] = React.useState(0);
   const [phase, setPhase] = React.useState(-1); // -1 idle · 0..N-1 working · N awaiting approval
   const [approved, setApproved] = React.useState(false);
+  const [delivery, setDelivery] = React.useState<"live" | "sim" | "failed" | null>(null);
   const order = queue.length ? queue[idx % queue.length] : undefined;
+
+  async function approve() {
+    if (!order) return;
+    setApproved(true);
+    if (!live.isLive) { setDelivery("sim"); return; }
+    try {
+      const r = await api.dispatchWebhook(live.webhook, {
+        source: "Veridian",
+        text: `⚠️ Veridian agent run — Order #${order.order_id.slice(0, 8)} (${priorityOf(order)}) · ${playbook(order)}`,
+        order_id: order.order_id, recommended_action: playbook(order), message: composeMessage(order),
+      });
+      setDelivery(r.ok ? "live" : "failed");
+    } catch { setDelivery("failed"); }
+  }
 
   async function run() {
     setApproved(false);
@@ -52,6 +69,7 @@ export function AgentRun({ queue }: { queue: ScoredOrder[] }) {
     setIdx((i) => i + 1);
     setPhase(-1);
     setApproved(false);
+    setDelivery(null);
   }
 
   if (!order) return null;
@@ -103,7 +121,7 @@ export function AgentRun({ queue }: { queue: ScoredOrder[] }) {
                   <p className="font-medium text-foreground">Ready for your approval</p>
                   <p className="text-sm text-muted-foreground">The agents prepared everything. Nothing has been sent — you have the final say.</p>
                 </div>
-                <Button className="ml-auto" onClick={() => setApproved(true)}>
+                <Button className="ml-auto" onClick={approve}>
                   <Check className="size-4" /> Approve &amp; ship
                 </Button>
               </Card>
@@ -113,7 +131,14 @@ export function AgentRun({ queue }: { queue: ScoredOrder[] }) {
                 <div className="min-w-0">
                   <p className="font-medium text-foreground">Resolved &amp; routed</p>
                   <p className="text-sm text-muted-foreground">
-                    Worked in {AGENTS.length} steps, delivered to {routeFor(order).length} systems (simulated), follow-up scheduled.
+                    Worked in {AGENTS.length} steps, follow-up scheduled —{" "}
+                    {delivery === "live" ? (
+                      <strong className="font-medium text-emerald-700">delivered to your connected webhook for real.</strong>
+                    ) : delivery === "failed" ? (
+                      <strong className="font-medium text-rose-700">delivery failed (check the webhook on Integrations).</strong>
+                    ) : (
+                      <>routing to {routeFor(order).length} systems (simulated).</>
+                    )}
                   </p>
                 </div>
                 <Button variant="secondary" className="ml-auto" onClick={next}>

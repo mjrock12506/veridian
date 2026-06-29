@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot, Sparkles, Send, Check, Loader2, Zap, Inbox, ShieldCheck, Flame, Mail,
   Search, ListChecks, PencilLine, Share2, CheckCircle2, Download, ChevronRight,
+  Radio, AlertCircle,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
-import { DataBadge } from "@/components/app/data-badge";
 import { StatCard } from "@/components/app/stat-card";
 import { RiskBadge } from "@/components/app/risk-badge";
 import { AgentRun } from "@/components/app/agent-run";
@@ -18,9 +19,12 @@ import { Button } from "@/components/ui/button";
 import { api, type ScoredOrder, type DraftMessageResult } from "@/lib/api";
 import { DESTINATIONS, destination, routeFor } from "@/lib/connectors";
 import { priorityOf, playbook, composeMessage, rank } from "@/lib/playbook";
+import { useLiveMode, type LiveMode } from "@/lib/live-mode";
 import { useApi } from "@/lib/use-api";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+type Delivery = "live" | "sim" | "failed";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const MAX_QUEUE = 24;
@@ -35,7 +39,9 @@ const PIPELINE = [
 
 export default function ActionsPage() {
   const { data, loading, error, reload } = useApi(() => api.dashboard());
+  const live = useLiveMode();
   const [resolved, setResolved] = React.useState<Record<string, string>>({});
+  const [delivered, setDelivered] = React.useState<Record<string, Delivery>>({});
   const [drafts, setDrafts] = React.useState<Record<string, DraftMessageResult>>({});
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [autopilot, setAutopilot] = React.useState(false);
@@ -55,30 +61,64 @@ export default function ActionsPage() {
   function draftFor(o: ScoredOrder) {
     setDrafts((d) => ({ ...d, [o.order_id]: { message: composeMessage(o), source: "ai" } }));
   }
-  const resolveOne = (o: ScoredOrder) => {
+  function payloadFor(o: ScoredOrder) {
+    return {
+      source: "Veridian",
+      text: `⚠️ Veridian — Order #${o.order_id.slice(0, 8)} (${priorityOf(o)}) · delay ${pct(o.delay_probability)} / review ${pct(o.low_review_probability)}. Action: ${playbook(o)}.`,
+      order_id: o.order_id, delay_risk: o.delay_risk, low_review_risk: o.low_review_risk,
+      delay_probability: o.delay_probability, low_review_probability: o.low_review_probability,
+      recommended_action: playbook(o), message: drafts[o.order_id]?.message ?? composeMessage(o),
+    };
+  }
+  async function deliverOne(o: ScoredOrder): Promise<Delivery> {
+    if (!live.isLive) return "sim";
+    try { const r = await api.dispatchWebhook(live.webhook, payloadFor(o)); return r.ok ? "live" : "failed"; }
+    catch { return "failed"; }
+  }
+  async function deliverSummary(orders: ScoredOrder[]): Promise<Delivery> {
+    if (!live.isLive || !orders.length) return "sim";
+    const ids = orders.map((o) => "#" + o.order_id.slice(0, 8));
+    try {
+      const r = await api.dispatchWebhook(live.webhook, {
+        source: "Veridian",
+        text: `✅ Veridian — ${orders.length} at-risk orders actioned: ${ids.slice(0, 8).join(", ")}${ids.length > 8 ? ` +${ids.length - 8} more` : ""}`,
+        count: orders.length, order_ids: orders.map((o) => o.order_id),
+      });
+      return r.ok ? "live" : "failed";
+    } catch { return "failed"; }
+  }
+
+  async function resolveOne(o: ScoredOrder) {
     setResolved((r) => ({ ...r, [o.order_id]: playbook(o) }));
     setSelected((s) => { const n = new Set(s); n.delete(o.order_id); return n; });
-  };
+    const d = await deliverOne(o);
+    setDelivered((m) => ({ ...m, [o.order_id]: d }));
+  }
   const editDraft = (id: string, text: string) =>
     setDrafts((d) => ({ ...d, [id]: { ...d[id], message: text } }));
   const toggleSel = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  function resolveMany(orders: ScoredOrder[]) {
+  async function resolveMany(orders: ScoredOrder[]) {
     setResolved((r) => {
       const n = { ...r };
       for (const o of orders) n[o.order_id] = playbook(o);
       return n;
     });
     setSelected(new Set());
+    const d = await deliverSummary(orders);
+    setDelivered((m) => { const n = { ...m }; for (const o of orders) n[o.order_id] = d; return n; });
   }
 
   async function runAutopilot() {
     setAutopilot(true);
+    const worked = [...queue];
     for (const o of queue) {
       await sleep(220);
       setResolved((r) => ({ ...r, [o.order_id]: playbook(o) }));
     }
+    const d = await deliverSummary(worked);
+    setDelivered((m) => { const n = { ...m }; for (const o of worked) n[o.order_id] = d; return n; });
     setAutopilot(false);
   }
 
@@ -110,7 +150,7 @@ export default function ActionsPage() {
     <div>
       <PageHeader
         eyebrow="Workspace"
-        badge={<DataBadge kind="demo" />}
+        badge={<ModeBadge live={live} />}
         title="AI action center"
         description="The AI scans every order, triages the at-risk ones by priority, drafts the outreach, and routes each action to your tools — so a small team clears thousands of orders with a few clicks. You approve; nothing sends on its own."
         actions={
@@ -128,6 +168,8 @@ export default function ActionsPage() {
 
       {data && (
         <div className="space-y-6">
+          <ModeBanner live={live} />
+
           {/* Scale funnel — the AI narrows the haystack to the orders worth a human's time */}
           <Card className="overflow-hidden">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -307,6 +349,7 @@ export default function ActionsPage() {
                     <Check className="size-4 shrink-0 text-emerald-600" />
                     <span className="font-mono text-xs text-foreground/80">{o.order_id.slice(0, 10)}…</span>
                     <span className="text-muted-foreground">{resolved[o.order_id]}</span>
+                    <DeliveryTag status={delivered[o.order_id]} />
                     <span className="ml-auto flex items-center gap-1">
                       {routeFor(o).map((id) => {
                         const d = destination(id);
@@ -322,6 +365,56 @@ export default function ActionsPage() {
       )}
     </div>
   );
+}
+
+function ModeBadge({ live }: { live: LiveMode }) {
+  if (live.isLive)
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wide text-emerald-700">
+        <Radio className="size-3" /> Live · delivering
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 font-mono text-[0.65rem] uppercase tracking-wide text-amber-700">
+      Demo · simulated
+    </span>
+  );
+}
+
+function ModeBanner({ live }: { live: LiveMode }) {
+  if (live.isLive)
+    return (
+      <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm">
+        <Radio className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+        <p className="leading-relaxed text-muted-foreground">
+          <strong className="font-medium text-foreground">Live mode.</strong> Resolving an order — or a bulk approve — now
+          delivers a real action to your connected webhook. This is no longer a simulation.
+        </p>
+      </div>
+    );
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+      <AlertCircle className="size-5 shrink-0 text-amber-600" />
+      <p className="leading-relaxed text-muted-foreground">
+        <strong className="font-medium text-foreground">Demo mode — actions are simulated.</strong>{" "}
+        {live.signedIn
+          ? "You're signed in. Connect a delivery webhook to make actions real."
+          : "Sign in and connect a tool to switch on real delivery."}
+      </p>
+      <Link href="/connections" className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground hover:opacity-90">
+        <Radio className="size-3.5" /> {live.signedIn ? "Connect a tool" : "Set up live delivery"}
+      </Link>
+    </div>
+  );
+}
+
+function DeliveryTag({ status }: { status?: Delivery }) {
+  if (!status) return null;
+  if (status === "live")
+    return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[0.6rem] font-medium uppercase text-emerald-700"><Radio className="size-2.5" /> delivered</span>;
+  if (status === "failed")
+    return <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[0.6rem] font-medium uppercase text-rose-700"><AlertCircle className="size-2.5" /> failed</span>;
+  return <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[0.6rem] font-medium uppercase text-muted-foreground">simulated</span>;
 }
 
 function Funnel({ n, label, tone }: { n: string; label: string; tone: "muted" | "amber" | "primary" }) {
