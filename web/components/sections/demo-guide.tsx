@@ -4,6 +4,8 @@ import {
   FileSearch,
   MessagesSquare,
   SlidersHorizontal,
+  Users,
+  LineChart,
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
@@ -59,6 +61,22 @@ const STEPS: {
     cta: "Score an order",
     body: "Enter an order’s details and get a live prediction — delay and low-review probability with a calibrated risk level.",
   },
+  {
+    icon: Users,
+    step: "05",
+    title: "Group customers into segments",
+    href: "/segments",
+    cta: "View segments",
+    body: "See buyers grouped by lifetime value and loyalty, each with a recommended retention action — and where revenue concentrates.",
+  },
+  {
+    icon: LineChart,
+    step: "06",
+    title: "Forecast demand",
+    href: "/forecast",
+    cta: "View the forecast",
+    body: "Project monthly order volume forward with a transparent trend baseline and an honest uncertainty band.",
+  },
 ];
 
 export function DemoGuide() {
@@ -69,7 +87,7 @@ export function DemoGuide() {
           <Reveal className="eyebrow">What you can do</Reveal>
           <Reveal index={1}>
             <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
-              Four things to try — start with the dashboard.
+              Six things to try — start with the dashboard.
             </h2>
           </Reveal>
           <Reveal index={2}>

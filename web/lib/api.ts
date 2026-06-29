@@ -71,6 +71,56 @@ export interface AskResponse {
   tokens: number;
 }
 
+export interface CustomerSegment {
+  key: string;
+  name: string;
+  description: string;
+  action: string;
+  tone: "primary" | "amber" | "muted";
+  customers: number;
+  share_pct: number;
+  avg_spend: number;
+  avg_orders: number;
+  revenue_share_pct: number;
+}
+
+export interface SegmentsData {
+  summary: {
+    customers: number;
+    orders: number;
+    repeat_rate_pct: number;
+    avg_order_value: number;
+  };
+  segments: CustomerSegment[];
+  value_tiers: { tier: string; customers: number; revenue_share_pct: number }[];
+  top_states: { state: string; customers: number; avg_spend: number }[];
+  top_categories: { category: string; orders: number; revenue: number }[];
+}
+
+export interface ForecastPoint {
+  month: string;
+  actual: number | null;
+  forecast: number | null;
+  lower: number | null;
+  upper: number | null;
+}
+
+export interface ForecastData {
+  summary: {
+    history_months: number;
+    last_month: string;
+    last_orders: number;
+    horizon_months: number;
+    next_month: string;
+    next_orders: number;
+    projected_total: number;
+    avg_mom_growth_pct: number;
+    trend_per_month: number;
+    method: string;
+  };
+  series: ForecastPoint[];
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -106,6 +156,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   dashboard: () => request<DashboardData>("/dashboard"),
+  segments: () => request<SegmentsData>("/segments"),
+  forecast: () => request<ForecastData>("/forecast"),
   order: (id: string) => request<OrderDetail>(`/orders/${id}`),
   ask: (question: string, order?: Record<string, unknown>) =>
     request<AskResponse>("/ask", {

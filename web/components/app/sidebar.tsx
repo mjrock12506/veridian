@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, MessagesSquare, SlidersHorizontal, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, MessagesSquare, SlidersHorizontal, Users, LineChart, ArrowUpRight, type LucideIcon } from "lucide-react";
 
 import { Logo } from "@/components/site/logo";
 import { UserMenu } from "@/components/auth/user-menu";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Customer segments", href: "/segments", icon: Users },
+  { label: "Demand forecast", href: "/forecast", icon: LineChart },
   { label: "AI Copilot", href: "/copilot", icon: MessagesSquare },
   { label: "Score an order", href: "/score", icon: SlidersHorizontal },
 ];

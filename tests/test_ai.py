@@ -145,7 +145,10 @@ def test_copilot_handles_llm_unavailable_gracefully(monkeypatch):
     monkeypatch.setattr(copilot.llm, "chat", _unavailable)
     res = copilot.answer("What's the delay risk?")
     assert res.error is not None
-    assert "unavailable" in res.answer.lower()
+    # Degrades to a grounded answer from the knowledge base rather than a dead end,
+    # and says so (the LLM is offline) instead of letting /ask hard-fail with a 503.
+    assert res.answer
+    assert "offline" in res.answer.lower()
     # Never fabricates a model result when the LLM is down.
     assert res.model_results == []
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import asdict, dataclass, field
 
 from ai import config, llm, rag, tools
@@ -94,6 +95,92 @@ def _assistant_msg_to_dict(msg) -> dict:
     return out
 
 
+# --------------------------------------------------------------------------- #
+# Graceful degradation: answer straight from the grounded corpus when the LLM
+# is offline (no key, exhausted quota, provider outage) or anything else fails,
+# so /ask stays useful and never hard-errors instead of returning 503.
+# --------------------------------------------------------------------------- #
+_FALLBACK_NOTE = (
+    " (Answered from Veridian's knowledge base — the language model is offline right now.)"
+)
+_STOPWORDS = set(
+    "a an the of to in on for and or is are was were be been being what which who how "
+    "does do did with from this that these those by as at it its their our your you we "
+    "about into can could would should will than then there here when where why".split()
+)
+
+
+def _keywords(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9_]+", (text or "").lower())
+            if len(w) > 2 and w not in _STOPWORDS}
+
+
+def _extractive_answer(question: str, passages: list[rag.Passage], max_chunks: int = 3) -> str:
+    """Pull the most question-relevant lines/sentences out of the grounded corpus.
+
+    Backend-agnostic: works over whatever passages were retrieved (the whole
+    corpus under the default "direct" backend). Scores candidate lines by keyword
+    overlap with the question so a metric/definition question surfaces the exact
+    line that answers it, without any LLM call.
+    """
+    qk = _keywords(question)
+    if not qk or not passages:
+        return ""
+    scored: list[tuple[float, int, str]] = []
+    seen: set[str] = set()
+    idx = 0
+    for p in passages:
+        for line in p.text.splitlines():
+            for chunk in re.split(r"(?<=[.!?])\s+", line.strip()):
+                c = chunk.strip(" -|#*`>").strip()
+                # Tidy markdown so table rows / bold read as plain prose.
+                c = c.replace("**", "").replace(" | ", " · ").replace("|", " ")
+                c = re.sub(r"\s{2,}", " ", c).strip()
+                key = c.lower()
+                if len(c) < 12 or key in seen:
+                    continue
+                ck = _keywords(c)
+                overlap = len(qk & ck)
+                if overlap == 0:
+                    continue
+                # Reward overlap; lightly favour focused lines over sprawling ones.
+                score = overlap + overlap / (1 + len(ck) ** 0.5)
+                scored.append((score, idx, c))
+                seen.add(key)
+                idx += 1
+    if not scored:
+        return ""
+    top = sorted(scored, key=lambda t: (-t[0], t[1]))[:max_chunks]
+    top.sort(key=lambda t: t[1])  # present in reading order for coherence
+    return " ".join(c for _, _, c in top)[:700].strip()
+
+
+def _grounded_fallback(
+    question: str,
+    passages: list[rag.Passage],
+    model_results: list[dict],
+    sources: list[str],
+    tokens: int,
+    exc: Exception,
+) -> CopilotResult:
+    extracted = _extractive_answer(question, passages)
+    if extracted:
+        answer_text = extracted + _FALLBACK_NOTE
+    else:
+        answer_text = (
+            "The language model is offline right now, so I can't compose a full answer. "
+            "You can still ask about the dataset or the model metrics (e.g. ROC-AUC), or "
+            "score an order directly on the Score page — the prediction models are live."
+        )
+    return CopilotResult(
+        answer=answer_text,
+        model_results=model_results,
+        sources=sources or list(dict.fromkeys(p.source for p in passages)),
+        tokens=tokens,
+        error=str(exc),
+    )
+
+
 def answer(question: str, order: dict | None = None) -> CopilotResult:
     """Answer a natural-language question, grounded in retrieval + tools."""
     question = (question or "").strip()
@@ -163,16 +250,14 @@ def answer(question: str, order: dict | None = None) -> CopilotResult:
         )
 
     except llm.LLMUnavailable as exc:
-        # Log the real exception (with traceback) before degrading gracefully, so
-        # the underlying cause — bad key, exhausted quota, provider outage — is
-        # visible in the logs even though the caller gets a soft fallback.
-        logger.exception("LLM unavailable (model=%s); returning degraded answer", config.LLM_MODEL)
-        return CopilotResult(
-            answer="The language model is currently unavailable, so I can't generate "
-            "an answer right now. The prediction models are still callable directly "
-            "via the /predict endpoints.",
-            model_results=model_results,
-            sources=sources,
-            tokens=total_tokens,
-            error=str(exc),
-        )
+        # Expected degradation (bad key, exhausted quota, provider outage). Log the
+        # cause, then answer from the grounded corpus instead of a dead end.
+        logger.warning("LLM unavailable (model=%s); answering from the knowledge base: %s",
+                       config.LLM_MODEL, exc)
+        return _grounded_fallback(question, passages, model_results, sources, total_tokens, exc)
+    except Exception as exc:
+        # Anything else (tool error, malformed provider response, …): never bubble
+        # up to a 503 — degrade to the grounded corpus so /ask stays answerable.
+        logger.exception("Copilot answer failed (model=%s); answering from the knowledge base",
+                         config.LLM_MODEL)
+        return _grounded_fallback(question, passages, model_results, sources, total_tokens, exc)

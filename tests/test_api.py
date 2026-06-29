@@ -12,14 +12,29 @@ from fastapi.testclient import TestClient
 
 from api.main import app
 
-ARTIFACTS = Path(__file__).resolve().parent.parent / "models" / "artifacts"
+ROOT = Path(__file__).resolve().parent.parent
+ARTIFACTS = ROOT / "models" / "artifacts"
 HAVE_ARTIFACTS = (ARTIFACTS / "delay_model.joblib").exists()
+WAREHOUSE = ROOT / "data" / "veridian.db"
+HAVE_DB = WAREHOUSE.exists()
 
 
 @pytest.fixture(scope="module")
 def client():
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def local_warehouse(monkeypatch):
+    """Pin the warehouse to the committed local SQLite file so the data-backed
+    endpoints are tested hermetically (never the remote DB a local .env may set)."""
+    from pipeline import config
+    from api import segments, forecast
+
+    monkeypatch.setattr(config, "DATABASE_URL", f"sqlite:///{WAREHOUSE}")
+    segments._CACHE.clear()
+    forecast._CACHE.clear()
 
 
 def test_health(client):
@@ -74,3 +89,30 @@ def test_unknown_model_404(client):
 def test_extra_field_rejected(client):
     r = client.post("/predict/delay", json={"bogus_field": 1})
     assert r.status_code == 422  # schema forbids extra fields
+
+
+@pytest.mark.skipif(not HAVE_DB, reason="warehouse not built")
+def test_segments(client, local_warehouse):
+    r = client.get("/segments")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"]["customers"] > 0
+    assert 0.0 <= body["summary"]["repeat_rate_pct"] <= 100.0
+    keys = {s["key"] for s in body["segments"]}
+    assert {"champions", "one_time_buyers"} <= keys
+    assert len(body["value_tiers"]) == 4
+    # Revenue shares across the four spend tiers should sum to ~100%.
+    assert abs(sum(t["revenue_share_pct"] for t in body["value_tiers"]) - 100.0) < 1.0
+    assert body["top_categories"] and body["top_states"]
+
+
+@pytest.mark.skipif(not HAVE_DB, reason="warehouse not built")
+def test_forecast(client, local_warehouse):
+    r = client.get("/forecast")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"]["history_months"] >= 4
+    assert body["summary"]["horizon_months"] == 6
+    # The series carries both actual history and a disjoint forecast tail.
+    assert any(p["actual"] is not None for p in body["series"])
+    assert any(p["forecast"] is not None and p["actual"] is None for p in body["series"])

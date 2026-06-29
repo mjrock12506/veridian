@@ -1,9 +1,33 @@
 import { Logo } from "@/components/site/logo";
 
-const COLUMNS: { title: string; links: string[] }[] = [
-  { title: "Product", links: ["Risk dashboard", "AI copilot", "Segments", "Forecasts"] },
-  { title: "Company", links: ["About", "Careers", "Blog", "Contact"] },
-  { title: "Resources", links: ["Docs", "Model card", "Changelog", "Status"] },
+const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
+  {
+    title: "Product",
+    links: [
+      { label: "Risk dashboard", href: "/dashboard" },
+      { label: "AI copilot", href: "/copilot" },
+      { label: "Segments", href: "/segments" },
+      { label: "Forecasts", href: "/forecast" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "#" },
+      { label: "Careers", href: "#" },
+      { label: "Blog", href: "#" },
+      { label: "Contact", href: "#" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Docs", href: "#" },
+      { label: "Model card", href: "#" },
+      { label: "Changelog", href: "#" },
+      { label: "Status", href: "#" },
+    ],
+  },
 ];
 
 export function Footer() {
@@ -25,12 +49,12 @@ export function Footer() {
               </h4>
               <ul className="mt-4 space-y-3">
                 {col.links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <a
-                      href="#"
+                      href={link.href}
                       className="text-sm text-foreground/80 transition-colors hover:text-primary"
                     >
-                      {link}
+                      {link.label}
                     </a>
                   </li>
                 ))}

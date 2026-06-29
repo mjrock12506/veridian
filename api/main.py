@@ -182,3 +182,34 @@ def order_detail(order_id: str) -> dict:
     if record is None:
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not in the scored sample.")
     return record
+
+
+@app.get("/segments")
+def segments() -> dict:
+    """Customer value × loyalty segments with a recommended retention action each,
+    plus spend-tier, category, and geographic breakdowns. Computed once, cached."""
+    from api import segments as seg
+
+    try:
+        return seg.get_segments()
+    except Exception as exc:  # warehouse missing/unreadable -> clear 503, never hang
+        logger.exception("Segments build failed")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Segments data unavailable: {exc}. Run `python -m pipeline.run` first.",
+        ) from exc
+
+
+@app.get("/forecast")
+def forecast() -> dict:
+    """Monthly order volume with a transparent trend-based projection. Cached."""
+    from api import forecast as fc
+
+    try:
+        return fc.get_forecast()
+    except Exception as exc:
+        logger.exception("Forecast build failed")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Forecast data unavailable: {exc}. Run `python -m pipeline.run` first.",
+        ) from exc

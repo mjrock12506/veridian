@@ -1,18 +1,18 @@
-import { Users, LineChart, type LucideIcon } from "lucide-react";
+import { Store, BellRing, type LucideIcon } from "lucide-react";
 
 import { Reveal } from "@/components/anim/reveal";
 import { Badge } from "@/components/ui/badge";
 
 const PLANNED: { icon: LucideIcon; title: string; body: string }[] = [
   {
-    icon: Users,
-    title: "Customer segments",
-    body: "Group buyers by behavior and value to target retention where it pays off most.",
+    icon: Store,
+    title: "Connect your own store",
+    body: "Bring your own orders by CSV or API sync and score them with the same calibrated models.",
   },
   {
-    icon: LineChart,
-    title: "Demand forecasts",
-    body: "Anticipate order volume so operations and inventory stay ahead of the curve.",
+    icon: BellRing,
+    title: "Automated alerts",
+    body: "Push a Slack or email alert the moment an incoming order crosses its risk threshold.",
   },
 ];
 
@@ -29,9 +29,9 @@ export function Roadmap() {
           </Reveal>
           <Reveal index={2}>
             <p className="mt-5 text-pretty text-lg leading-relaxed text-muted-foreground">
-              Everything you can try today is live. Beyond connecting your own
-              store, these are planned extensions — not yet built, listed here for
-              honesty about scope.
+              Customer segments and demand forecasts are now live. These are the
+              next planned extensions — not yet built, listed here for honesty
+              about scope.
             </p>
           </Reveal>
         </div>
