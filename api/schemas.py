@@ -109,6 +109,12 @@ class AskRequest(BaseModel):
         default=None,
         description="Optional order features the copilot may pass to a prediction tool.",
     )
+    data_context: str | None = Field(
+        default=None,
+        max_length=12000,
+        description="Optional summary of the user's own uploaded/connected data "
+        "(e.g. scored CSV stats), so the copilot can answer grounded in their data.",
+    )
 
 
 class AskResponse(BaseModel):

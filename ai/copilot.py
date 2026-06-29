@@ -49,8 +49,9 @@ unrelated topics (general trivia, coding help) briefly decline and say what you 
 can help with.
 2. NEVER invent risk numbers. For an order-specific risk, call the prediction \
 tool and report the calibrated probability it returns — don't estimate one.
-3. For dataset/metric facts, use the figures in the CONTEXT block; if a specific \
-figure isn't there or available via a tool, say so rather than guessing.
+3. For dataset/metric facts, use the figures in the CONTEXT block; for questions \
+about the user's own orders, use THE USER'S OWN DATA block when present. If a \
+specific figure isn't there or available via a tool, say so rather than guessing.
 4. Be concise, friendly, and practical — answer like a product guide helping the \
 user get value, not a terse FAQ.
 """
@@ -185,8 +186,15 @@ def _grounded_fallback(
     )
 
 
-def answer(question: str, order: dict | None = None) -> CopilotResult:
-    """Answer a natural-language question, grounded in retrieval + tools."""
+def answer(
+    question: str, order: dict | None = None, data_context: str | None = None
+) -> CopilotResult:
+    """Answer a natural-language question, grounded in retrieval + tools.
+
+    ``data_context`` is an optional summary of the user's own uploaded/connected
+    data (e.g. their scored CSV). When present it's injected as authoritative
+    grounding so the copilot answers about *their* orders, not just the demo set.
+    """
     question = (question or "").strip()
     if not question:
         return CopilotResult(answer="Please ask a question about the Veridian data or models.")
@@ -203,8 +211,20 @@ def answer(question: str, order: dict | None = None) -> CopilotResult:
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "system", "content": _context_block(passages)},
-        {"role": "user", "content": user_content},
     ]
+    if data_context:
+        messages.append({
+            "role": "system",
+            "content": (
+                "THE USER'S OWN DATA (they uploaded or connected this; it is the "
+                "authoritative source for any question about 'my orders', 'my data', "
+                "'my store'. Use these exact figures and cite them):\n"
+                + data_context.strip()[:12000]
+            ),
+        })
+        if "your-data" not in sources:
+            sources.insert(0, "your-data")
+    messages.append({"role": "user", "content": user_content})
 
     tool_specs = tools.TOOL_SPECS if tools.available_tools() else None
     model_results: list[dict] = []

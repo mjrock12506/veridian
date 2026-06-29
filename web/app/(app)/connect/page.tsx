@@ -8,6 +8,7 @@ import { StatCard } from "@/components/app/stat-card";
 import { RiskBadge } from "@/components/app/risk-badge";
 import { DataBadge } from "@/components/app/data-badge";
 import { RequireAuth } from "@/components/auth/require-auth";
+import { AskYourData } from "@/components/app/ask-your-data";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { api, type BatchScoreResult, type BatchScoreRow } from "@/lib/api";
@@ -77,6 +78,7 @@ export default function ConnectPage() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [data, setData] = React.useState<BatchScoreResult | null>(null);
+  const [rows, setRows] = React.useState<Record<string, unknown>[]>([]);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   async function score(csv: string) {
@@ -90,6 +92,7 @@ export default function ConnectPage() {
     setData(null);
     try {
       setData(await api.scoreBatch(orders));
+      setRows(orders);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scoring failed.");
     } finally {
@@ -174,6 +177,11 @@ export default function ConnectPage() {
           {data && !loading && <Results data={data} />}
         </div>
       </div>
+      {data && !loading && (
+        <div className="mt-6">
+          <AskYourData data={data} rows={rows} />
+        </div>
+      )}
       </RequireAuth>
     </div>
   );

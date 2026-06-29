@@ -164,7 +164,9 @@ def ask(request: AskRequest) -> AskResponse:
         ) from exc
 
     try:
-        result = copilot.answer(request.question, order=request.order)
+        result = copilot.answer(
+            request.question, order=request.order, data_context=request.data_context
+        )
     except Exception as exc:  # surface the real traceback; never hang silently
         logger.exception("AI copilot failed while answering")
         raise HTTPException(status_code=503, detail=f"Copilot error: {exc}") from exc

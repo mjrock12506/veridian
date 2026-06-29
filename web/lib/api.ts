@@ -248,12 +248,12 @@ export const api = {
   draftMessage: (body: { order?: Record<string, unknown>; delay_risk?: string; low_review_risk?: string }) =>
     request<DraftMessageResult>("/draft-message", { method: "POST", body: JSON.stringify(body) }),
   order: (id: string) => request<OrderDetail>(`/orders/${id}`),
-  ask: (question: string, order?: Record<string, unknown>) =>
+  ask: (question: string, order?: Record<string, unknown>, dataContext?: string) =>
     STATIC_DEMO
       ? Promise.resolve(cannedAsk(question))
       : request<AskResponse>("/ask", {
           method: "POST",
-          body: JSON.stringify({ question, order: order ?? null }),
+          body: JSON.stringify({ question, order: order ?? null, data_context: dataContext ?? null }),
         }),
   predictDelay: (features: Record<string, unknown>) =>
     request<PredictionResponse>("/predict/delay", {

@@ -160,7 +160,7 @@ def test_ask_endpoint_returns_grounded_answer(monkeypatch):
     from api.main import app
     from fastapi.testclient import TestClient
 
-    def fake_answer(question, order=None):
+    def fake_answer(question, order=None, data_context=None):
         return copilot.CopilotResult(
             answer="ROC-AUC is 0.785.",
             model_results=[{"model": "delay", "probability": 0.29}],
