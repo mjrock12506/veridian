@@ -1,0 +1,25 @@
+name: keep-alive
+
+# Pings the Render backend on a schedule so the free-tier service never spins
+# down — a visitor's first request is then instant instead of a ~40s cold start.
+# Free for public repos. Disable by removing this file or turning off Actions.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 minutes (Render free tier sleeps after ~15 min idle)
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warm the API
+        run: |
+          URL="https://veridian-iw3k.onrender.com/health"
+          for i in 1 2 3 4; do
+            code=$(curl -s -m 90 -o /dev/null -w '%{http_code}' "$URL" || echo 000)
+            echo "attempt $i -> $code"
+            [ "$code" = "200" ] && { echo "warm"; exit 0; }
+            sleep 25
+          done
+          echo "backend did not return 200 (cold miss); not failing the run"

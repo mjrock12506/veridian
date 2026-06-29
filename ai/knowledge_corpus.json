@@ -1,5 +1,25 @@
 [
   {
+    "id": "docs/PRODUCT_OVERVIEW.md#0",
+    "text": "(preamble)\n# Veridian — product overview\n\nVeridian is an order-intelligence app for e-commerce operations teams. The moment\nan order is placed it predicts whether the order will be **delivered late** or\nearn a **low (1–2 star) review**, so the team can act before the cost is locked in\n(refunds, churn, bad ratings). It is built on the Olist Brazilian e-commerce\ndataset (~100k real orders, 2016–2018) and two calibrated machine-learning models.",
+    "source": "docs/PRODUCT_OVERVIEW.md"
+  },
+  {
+    "id": "docs/PRODUCT_OVERVIEW.md#1",
+    "text": "What you can do (pages)\n- **Dashboard** — every order scored and ranked riskiest-first, with portfolio\n  stats (orders scored, % delay at-risk, % low-review at-risk, high-risk count).\n  Start here to see the whole order book at a glance.\n- **AI Action Center** — the AI triages every at-risk order by priority\n  (High / Medium), recommends a playbook per order (e.g. *expedite shipping*,\n  *proactive support outreach*, *confirm the delivery ETA*), and **drafts the\n  customer message for you**. You review and edit the draft, then send — nothing\n  is sent automatically and Veridian never messages customers directly. An\n  **auto-pilot** can work the queue; the resolved count and coverage update live.\n  Use it each morning to clear the highest-risk orders fast.\n- **Customer Segments** — buyers grouped by lifetime value and loyalty (Champions,\n  High-value first-timers, Loyal regulars, One-time buyers), each with a\n  recommended retention action and revenue share.\n- **Demand Forecast** — monthly order volume with a transparent trend projection\n  and an uncertainty band.\n- **Score an order** — enter an order's fields and get the calibrated delay and\n  low-review probabilities instantly.\n- **Connect your store** — export your orders from Shopify, Amazon Seller Central,\n  or any platform as a CSV and upload it to score every order with the same\n  models. A free account is required; your data is processed in the browser and\n  never stored.",
+    "source": "docs/PRODUCT_OVERVIEW.md"
+  },
+  {
+    "id": "docs/PRODUCT_OVERVIEW.md#2",
+    "text": "How a team gets value\nA typical morning: open the Dashboard to see how many orders are flagged, then go\nto the AI Action Center, run auto-pilot or work the High-priority queue, review\nand send the drafted messages, and resolve them — turning a risk score into a save\nbefore the customer is let down.",
+    "source": "docs/PRODUCT_OVERVIEW.md"
+  },
+  {
+    "id": "docs/PRODUCT_OVERVIEW.md#3",
+    "text": "The two models\n- **Delay model** — will the order be delivered after the customer's estimate?\n  Uses only order-time features (ROC-AUC ≈ 0.78).\n- **Low-review model** — will the customer leave a 1–2 star review? (ROC-AUC ≈ 0.76).\n\nBoth are isotonic-calibrated, so a \"30%\" really happens about 30% of the time —\nthe probabilities are trustworthy, not just ranked.",
+    "source": "docs/PRODUCT_OVERVIEW.md"
+  },
+  {
     "id": "docs/data_dictionary.md#0",
     "text": "(preamble)\n# Veridian — Data Dictionary\n\nSource: **Olist Brazilian E-Commerce Public Dataset** (~100k orders placed on the\nOlist marketplace, 2016–2018). Nine raw CSVs in `data/raw/` (gitignored). This\ndocument describes every raw table and column, then the **order-level table**\nthat the Phase 1 EDA builds (`notebooks/01_eda_olist.ipynb`).\n\nAll timestamps are local Brazilian time, format `YYYY-MM-DD HH:MM:SS`. Currency\nis Brazilian Real (BRL). Primary keys are 32-char hashes unless noted.\n\n---",
     "source": "docs/data_dictionary.md"

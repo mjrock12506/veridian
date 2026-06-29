@@ -33,9 +33,22 @@ LLM_MODEL = os.environ.get("LLM_MODEL", "gemini/gemini-2.5-flash")
 LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "0.0"))
 # Modest cap keeps responses (and free-tier token usage) small.
 LLM_MAX_TOKENS = int(os.environ.get("LLM_MAX_TOKENS", "700"))
-LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "3"))
+LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "2"))
 # Cap on tool-call rounds before the copilot must answer (loop guard).
 LLM_MAX_TOOL_ROUNDS = int(os.environ.get("LLM_MAX_TOOL_ROUNDS", "3"))
+# Fallback models tried in order when the primary is rate-limited/unavailable
+# (e.g. a free-tier per-minute token cap). Only those whose provider key is
+# present are attempted — so a single key still helps: a smaller, higher-
+# throughput model on the same provider (Groq 8b) absorbs bursts, and a second
+# provider (Gemini) covers a full outage. Override with LLM_FALLBACKS.
+LLM_FALLBACKS = [
+    m.strip()
+    for m in os.environ.get(
+        "LLM_FALLBACKS",
+        "groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash,gemini/gemini-2.0-flash",
+    ).split(",")
+    if m.strip()
+]
 
 # --- Retrieval (RAG) -------------------------------------------------------- #
 # The knowledge corpus is tiny (dataset dictionary + measured metrics, ~20 KB)
@@ -68,13 +81,15 @@ RAG_DIRECT_CHAR_BUDGET = int(os.environ.get("RAG_DIRECT_CHAR_BUDGET", "24000"))
 RAG_EMBED_MODEL = os.environ.get("RAG_EMBED_MODEL", "all-MiniLM-L6-v2")
 
 
-def provider_key_present() -> bool:
-    """True if a credential for the configured provider looks available.
+def provider_key_present(model: str | None = None) -> bool:
+    """True if a credential for ``model``'s provider looks available (defaults to
+    the configured ``LLM_MODEL``).
 
-    Used to fail fast with a clear message instead of a deep LiteLLM error.
-    Local providers (Ollama) need no key.
+    Used to fail fast with a clear message instead of a deep LiteLLM error, and
+    to filter the fallback chain to providers we actually have keys for. Local
+    providers (Ollama) need no key.
     """
-    provider = LLM_MODEL.split("/", 1)[0].lower()
+    provider = (model or LLM_MODEL).split("/", 1)[0].lower()
     key_env = {
         "gemini": "GEMINI_API_KEY",
         "groq": "GROQ_API_KEY",

@@ -96,6 +96,7 @@ def _stats_documents() -> list[Document]:
 def build_corpus() -> list[Document]:
     """All knowledge documents to index, deduplicated by id."""
     docs: list[Document] = []
+    docs += _chunk_markdown(DOCS / "PRODUCT_OVERVIEW.md", "docs/PRODUCT_OVERVIEW.md")
     docs += _chunk_markdown(DOCS / "data_dictionary.md", "docs/data_dictionary.md")
     docs += _chunk_markdown(DOCS / "MODEL_CARD.md", "docs/MODEL_CARD.md")
     docs += _stats_documents()

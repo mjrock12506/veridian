@@ -44,36 +44,17 @@ def _retry_delay_seconds(err: Exception, default: float) -> float:
         re.IGNORECASE,
     )
     if m:
-        return min(float(m.group(1)) + 0.5, 60.0)
+        # Cap the honoured delay so an interactive caller fails over to the next
+        # provider quickly instead of waiting out a long rate-limit window.
+        return min(float(m.group(1)) + 0.5, 6.0)
     return default
 
 
-def chat(
-    messages: list[dict],
-    tools: list[dict] | None = None,
-    *,
-    model: str | None = None,
-    temperature: float | None = None,
-    max_tokens: int | None = None,
-    max_retries: int | None = None,
-    timeout: float | None = None,
-):
-    """Call the configured LLM and return the raw LiteLLM response.
-
-    Retries on transient rate-limit / availability errors with exponential
-    backoff, honouring a provider-suggested delay when one is given. Pass
-    ``max_retries`` to fail fast (e.g. 1) for latency-sensitive, best-effort
-    callers that prefer a quick fallback over waiting out a backoff.
-    """
+def _chat_once(model, messages, tools, temperature, max_tokens, max_retries, timeout):
+    """Call a single model, with bounded retry/backoff on transient errors."""
     retries = max_retries or config.LLM_MAX_RETRIES
-    if not config.provider_key_present():
-        raise LLMUnavailable(
-            f"No API key found for provider in LLM_MODEL={config.LLM_MODEL!r}. "
-            "Set the provider's key in .env (e.g. GEMINI_API_KEY)."
-        )
-
     kwargs: dict = {
-        "model": model or config.LLM_MODEL,
+        "model": model,
         "messages": messages,
         "temperature": config.LLM_TEMPERATURE if temperature is None else temperature,
         "max_tokens": max_tokens or config.LLM_MAX_TOKENS,
@@ -91,22 +72,53 @@ def chat(
         except (litellm.RateLimitError, litellm.ServiceUnavailableError) as err:
             last_err = err
             if any(marker in str(err).lower() for marker in _TERMINAL_MARKERS):
-                raise LLMUnavailable(
-                    "LLM quota/credit exhausted for the configured provider "
-                    f"({config.LLM_MODEL}). Set LLM_MODEL to another provider or "
-                    "add credits."
-                ) from err
+                raise LLMUnavailable(f"quota/credit exhausted for {model}") from err
             if attempt == retries - 1:
                 break
             time.sleep(_retry_delay_seconds(err, default=2.0 * (attempt + 1)))
         except litellm.AuthenticationError as err:
-            raise LLMUnavailable(f"Authentication failed: {err}") from err
+            raise LLMUnavailable(f"authentication failed for {model}: {err}") from err
         except litellm.BadRequestError as err:
             # e.g. a provider that strictly validates tool-call arguments and
-            # rejects a malformed generation. Surface gracefully rather than
-            # crashing the request.
-            raise LLMUnavailable(f"Request rejected by provider: {err}") from err
+            # rejects a malformed generation. Surface gracefully rather than crash.
+            raise LLMUnavailable(f"request rejected by {model}: {err}") from err
 
-    raise LLMUnavailable(
-        f"LLM unavailable after {retries} attempts: {last_err}"
-    )
+    raise LLMUnavailable(f"{model} unavailable after {retries} attempts: {last_err}")
+
+
+def chat(
+    messages: list[dict],
+    tools: list[dict] | None = None,
+    *,
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    max_retries: int | None = None,
+    timeout: float | None = None,
+):
+    """Call the LLM, falling back across providers when one is rate-limited/down.
+
+    Tries the primary model (``model`` or ``LLM_MODEL``) then ``LLM_FALLBACKS``,
+    skipping any whose provider key isn't set — so a single key still helps (a
+    higher-throughput model on the same provider absorbs free-tier bursts). Each
+    model gets its own retry/backoff. ``max_retries`` makes each attempt fail
+    fast for latency-sensitive callers. Raises ``LLMUnavailable`` only when every
+    candidate is exhausted.
+    """
+    chain: list[str] = []
+    for m in [model or config.LLM_MODEL, *config.LLM_FALLBACKS]:
+        if m and m not in chain and config.provider_key_present(m):
+            chain.append(m)
+    if not chain:
+        raise LLMUnavailable(
+            f"No API key found for any configured LLM provider (LLM_MODEL={config.LLM_MODEL!r}). "
+            "Set GROQ_API_KEY and/or GEMINI_API_KEY in the environment."
+        )
+
+    last_err: Exception | None = None
+    for m in chain:
+        try:
+            return _chat_once(m, messages, tools, temperature, max_tokens, max_retries, timeout)
+        except LLMUnavailable as exc:
+            last_err = exc  # rate-limited / down — try the next provider in the chain
+    raise LLMUnavailable(f"all LLM providers exhausted ({', '.join(chain)}): {last_err}")
