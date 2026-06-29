@@ -6,6 +6,7 @@ import {
   SlidersHorizontal,
   Users,
   LineChart,
+  Store,
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +78,14 @@ const STEPS: {
     cta: "View the forecast",
     body: "Project monthly order volume forward with a transparent trend baseline and an honest uncertainty band.",
   },
+  {
+    icon: Store,
+    step: "07",
+    title: "Connect your store",
+    href: "/connect",
+    cta: "Score your orders",
+    body: "Paste or upload your own orders as a CSV and score every one with the same calibrated models — no sign-up.",
+  },
 ];
 
 export function DemoGuide() {
@@ -87,7 +96,7 @@ export function DemoGuide() {
           <Reveal className="eyebrow">What you can do</Reveal>
           <Reveal index={1}>
             <h2 className="mt-5 text-balance font-display text-display-sm font-bold text-foreground">
-              Six things to try — start with the dashboard.
+              Seven things to try — start with the dashboard.
             </h2>
           </Reveal>
           <Reveal index={2}>

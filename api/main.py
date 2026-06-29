@@ -24,6 +24,7 @@ from api import registry
 from api.schemas import (
     AskRequest,
     AskResponse,
+    BatchScoreRequest,
     HealthResponse,
     LowReviewFeatures,
     ModelInfo,
@@ -114,6 +115,21 @@ def predict_delay(features: OrderFeatures) -> PredictionResponse:
 def predict_low_review(features: LowReviewFeatures) -> PredictionResponse:
     """Probability that the customer leaves a low (1–2★) review."""
     return _predict("low_review", features.model_dump())
+
+
+@app.post("/score/batch")
+def score_batch(request: BatchScoreRequest) -> dict:
+    """Score a batch of caller-supplied orders (the 'connect your store' flow):
+    a calibrated delay + low-review risk per order, plus a portfolio summary."""
+    from api import batch
+
+    try:
+        return batch.score_orders(_registry, request.orders)
+    except KeyError as exc:  # a required model artifact is missing
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:  # malformed rows etc. — a client problem, not a 500
+        logger.exception("Batch scoring failed")
+        raise HTTPException(status_code=400, detail=f"Could not score the uploaded orders: {exc}") from exc
 
 
 @app.post("/ask", response_model=AskResponse)

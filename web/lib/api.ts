@@ -121,6 +121,28 @@ export interface ForecastData {
   series: ForecastPoint[];
 }
 
+export interface BatchScoreRow {
+  order_id: string;
+  delay_probability: number;
+  delay_risk: RiskLevel;
+  delay_flag: boolean;
+  low_review_probability: number;
+  low_review_risk: RiskLevel;
+  low_review_flag: boolean;
+}
+
+export interface BatchScoreResult {
+  results: BatchScoreRow[];
+  summary: {
+    orders: number;
+    delay_at_risk: number;
+    low_review_at_risk: number;
+    high_risk: number;
+    delay_at_risk_pct: number;
+    low_review_at_risk_pct: number;
+  };
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -158,6 +180,11 @@ export const api = {
   dashboard: () => request<DashboardData>("/dashboard"),
   segments: () => request<SegmentsData>("/segments"),
   forecast: () => request<ForecastData>("/forecast"),
+  scoreBatch: (orders: Record<string, unknown>[]) =>
+    request<BatchScoreResult>("/score/batch", {
+      method: "POST",
+      body: JSON.stringify({ orders }),
+    }),
   order: (id: string) => request<OrderDetail>(`/orders/${id}`),
   ask: (question: string, order?: Record<string, unknown>) =>
     request<AskResponse>("/ask", {

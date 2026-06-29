@@ -116,3 +116,28 @@ def test_forecast(client, local_warehouse):
     # The series carries both actual history and a disjoint forecast tail.
     assert any(p["actual"] is not None for p in body["series"])
     assert any(p["forecast"] is not None and p["actual"] is None for p in body["series"])
+
+
+@pytest.mark.skipif(not HAVE_ARTIFACTS, reason="models not trained")
+def test_score_batch(client):
+    r = client.post("/score/batch", json={"orders": [
+        {"order_id": "A-1", "estimated_delivery_days": 3, "customer_seller_distance_km": 3500,
+         "customer_state": "AM", "main_seller_state": "SP", "total_price": 200},
+        {"order_id": "A-2", "estimated_delivery_days": 15, "customer_state": "SP", "main_seller_state": "SP"},
+        {"bogus": "x"},  # a malformed row is imputed, not an error
+    ]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"]["orders"] == 3
+    rows = body["results"]
+    assert rows[0]["order_id"] == "A-1"
+    assert any(row["order_id"] == "row-3" for row in rows)  # generated id for the id-less row
+    for row in rows:
+        assert 0.0 <= row["delay_probability"] <= 1.0
+        assert row["delay_risk"] in {"low", "medium", "high"}
+
+
+def test_score_batch_empty(client):
+    r = client.post("/score/batch", json={"orders": []})
+    assert r.status_code == 200
+    assert r.json()["summary"]["orders"] == 0

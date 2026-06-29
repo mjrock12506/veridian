@@ -72,6 +72,23 @@ class PredictionResponse(BaseModel):
     risk_level: str = Field(description="low / medium / high bucket for display.")
 
 
+class BatchScoreRequest(BaseModel):
+    """A batch of caller-supplied orders to score (the 'connect your store' flow).
+
+    Each order is a partial set of order features (same fields as ``OrderFeatures`` /
+    ``LowReviewFeatures``); anything omitted is imputed by the model pipelines. An
+    optional ``order_id`` on a row is echoed back so callers can match results to
+    their own data.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    orders: list[dict] = Field(
+        default_factory=list,
+        description="Orders to score; each a partial mapping of order features (+ optional order_id).",
+    )
+
+
 class AskRequest(BaseModel):
     """A natural-language question for the copilot, with an optional order."""
 

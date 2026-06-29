@@ -1,18 +1,18 @@
-import { Store, BellRing, type LucideIcon } from "lucide-react";
+import { BellRing, Plug, type LucideIcon } from "lucide-react";
 
 import { Reveal } from "@/components/anim/reveal";
 import { Badge } from "@/components/ui/badge";
 
 const PLANNED: { icon: LucideIcon; title: string; body: string }[] = [
   {
-    icon: Store,
-    title: "Connect your own store",
-    body: "Bring your own orders by CSV or API sync and score them with the same calibrated models.",
-  },
-  {
     icon: BellRing,
     title: "Automated alerts",
     body: "Push a Slack or email alert the moment an incoming order crosses its risk threshold.",
+  },
+  {
+    icon: Plug,
+    title: "Native store sync",
+    body: "One-click Shopify and WooCommerce integration so new orders score themselves as they arrive — no CSV.",
   },
 ];
 
@@ -29,9 +29,9 @@ export function Roadmap() {
           </Reveal>
           <Reveal index={2}>
             <p className="mt-5 text-pretty text-lg leading-relaxed text-muted-foreground">
-              Customer segments and demand forecasts are now live. These are the
-              next planned extensions — not yet built, listed here for honesty
-              about scope.
+              Customer segments, demand forecasts, and bring-your-own-orders
+              scoring are now live. These are the next planned extensions — not
+              yet built, listed here for honesty about scope.
             </p>
           </Reveal>
         </div>
