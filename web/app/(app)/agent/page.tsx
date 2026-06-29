@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, ListChecks, Mail, Share2, Clock, Check, Loader2, Bot, Play,
@@ -89,7 +90,8 @@ export default function AgentPage() {
         <div className="space-y-5">
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-700">
             Preview: the run uses real model scores and a real draft, but delivery to external
-            tools (email, Slack, tickets) is <strong>simulated</strong> — no message is actually sent.
+            tools (email, Slack, tickets) is <strong>simulated</strong> — no message is actually sent.{" "}
+            <Link href="/connections" className="font-medium underline">See how the connection works →</Link>
           </p>
           {/* The order under work */}
           <Card className="flex flex-wrap items-center gap-x-4 gap-y-2">
