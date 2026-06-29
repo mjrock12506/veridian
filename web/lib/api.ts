@@ -245,6 +245,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ orders }),
     }),
+  // The one genuinely-live connector: POST a real action to the user's webhook
+  // (Slack / Zapier / Make / Apps Script) via the backend (avoids browser CORS).
+  dispatchWebhook: (url: string, payload: Record<string, unknown>) =>
+    request<{ ok: boolean; status: number; response: string }>("/integrations/dispatch", {
+      method: "POST",
+      body: JSON.stringify({ url, payload }),
+    }),
   draftMessage: (body: { order?: Record<string, unknown>; delay_risk?: string; low_review_risk?: string }) =>
     request<DraftMessageResult>("/draft-message", { method: "POST", body: JSON.stringify(body) }),
   order: (id: string) => request<OrderDetail>(`/orders/${id}`),

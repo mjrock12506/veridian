@@ -130,6 +130,17 @@ class AskResponse(BaseModel):
     tokens: int = Field(default=0, description="Approximate total tokens used.")
 
 
+class WebhookDispatchRequest(BaseModel):
+    """A real outbound action: POST a JSON payload to the user's webhook URL
+    (a Slack incoming webhook, a Zapier/Make catch hook that drives Gmail / Sheets
+    / Zendesk, a Google Apps Script web app, or any custom endpoint)."""
+
+    model_config = {"extra": "forbid"}
+
+    url: str = Field(description="The user's webhook URL to POST to.")
+    payload: dict = Field(default_factory=dict, description="JSON body to send.")
+
+
 class HealthResponse(BaseModel):
     status: str
     models_loaded: list[str]

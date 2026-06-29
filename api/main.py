@@ -31,6 +31,7 @@ from api.schemas import (
     ModelInfo,
     OrderFeatures,
     PredictionResponse,
+    WebhookDispatchRequest,
 )
 
 # Shared, process-wide registry — the AI copilot's tools reuse this same
@@ -140,6 +141,59 @@ def draft_message(request: DraftMessageRequest) -> dict:
     from ai import messaging
 
     return messaging.draft(request.order, request.delay_risk or "", request.low_review_risk or "")
+
+
+def _webhook_url_safe(url: str) -> tuple[bool, str]:
+    """Basic SSRF guard: only http(s), no internal/loopback/private targets."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    try:
+        u = urlparse(url)
+    except Exception:
+        return False, "invalid URL"
+    if u.scheme not in ("http", "https"):
+        return False, "only http(s) URLs are allowed"
+    host = (u.hostname or "").lower()
+    if not host or host == "localhost" or host.endswith((".local", ".internal")):
+        return False, "internal hosts are not allowed"
+    try:
+        for info in socket.getaddrinfo(host, None):
+            ip = ipaddress.ip_address(info[4][0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False, "private/loopback addresses are not allowed"
+    except OSError:
+        pass  # let an unresolvable host fail naturally on the request
+    return True, ""
+
+
+@app.post("/integrations/dispatch")
+def dispatch_webhook(request: WebhookDispatchRequest) -> dict:
+    """Deliver a real action to the caller's own webhook (Slack / Zapier / Make /
+    Apps Script / custom). This is the one genuinely-live connector: through a
+    Zapier or Make hook it can create a real Gmail draft, append a real Google
+    Sheets row, or open a real Zendesk ticket."""
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    ok, why = _webhook_url_safe(request.url)
+    if not ok:
+        raise HTTPException(status_code=400, detail=f"Webhook URL rejected: {why}")
+    data = _json.dumps(request.payload or {}).encode("utf-8")
+    req = urllib.request.Request(
+        request.url, data=data, headers={"Content-Type": "application/json"}, method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:  # noqa: S310 (scheme checked above)
+            text = resp.read(2000).decode("utf-8", "replace")
+            return {"ok": True, "status": resp.status, "response": text[:500]}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read(500).decode("utf-8", "replace") if exc.fp else str(exc)
+        return {"ok": False, "status": exc.code, "response": detail[:500]}
+    except Exception as exc:  # DNS failure, timeout, refused, …
+        raise HTTPException(status_code=502, detail=f"Could not reach the webhook: {exc}") from exc
 
 
 @app.post("/ask", response_model=AskResponse)

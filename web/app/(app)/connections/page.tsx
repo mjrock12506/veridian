@@ -4,13 +4,14 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plug, Share2, Clock, Check, Loader2, ArrowRight, ShieldCheck, Database,
-  FileSpreadsheet, Lock, Webhook, type LucideIcon,
+  FileSpreadsheet, Lock, Webhook, Zap, Radio, AlertCircle, type LucideIcon,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
 import { DataBadge } from "@/components/app/data-badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import { DESTINATIONS, type Connector } from "@/lib/connectors";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,84 @@ const TRACE: Record<string, { method: string; url: string; body: string }> = {
 };
 
 type Status = "idle" | "connecting" | "connected";
+
+const SAMPLE_PAYLOAD = {
+  source: "Veridian",
+  text: "⚠️ Veridian alert — Order #a1b2c3 is at 78% delay risk. Recommended action: expedite shipping + notify the customer.",
+  order_id: "a1b2c3",
+  delay_risk: "high",
+  delay_probability: 0.78,
+  recommended_action: "expedite_and_notify",
+};
+
+function LiveWebhook() {
+  const [url, setUrl] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [result, setResult] = React.useState<{ ok: boolean; status: number; response: string } | null>(null);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setUrl(localStorage.getItem("veridian_webhook") || "");
+  }, []);
+
+  async function sendTest() {
+    setBusy(true); setResult(null); setErr(null);
+    localStorage.setItem("veridian_webhook", url.trim());
+    try {
+      setResult(await api.dispatchWebhook(url.trim(), SAMPLE_PAYLOAD));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not reach the webhook.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="border-primary/30 bg-primary/[0.03]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><Radio className="size-5" /></span>
+        <h3 className="font-display text-base font-semibold text-foreground">Live webhook</h3>
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[0.65rem] font-medium text-emerald-700"><Zap className="size-3" /> Real — actually sends</span>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+        Paste a <strong className="text-foreground">Slack incoming webhook</strong>, a{" "}
+        <strong className="text-foreground">Zapier / Make</strong> catch hook (wire it to Gmail, Google Sheets, or Zendesk), or a{" "}
+        <strong className="text-foreground">Google Apps Script</strong> web-app URL. The test below POSTs a real at-risk-order
+        payload — you&apos;ll see it land in your tool.
+      </p>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://hooks.slack.com/services/…"
+          className="h-11 flex-1 rounded-xl border border-border bg-card px-3.5 font-mono text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-ring/40"
+        />
+        <Button onClick={sendTest} disabled={busy || !url.trim()} className="shrink-0">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Send a test event
+        </Button>
+      </div>
+      {result && (
+        <div className={cn("mt-3 rounded-xl border p-3 text-sm", result.ok ? "border-emerald-500/30 bg-emerald-500/5" : "border-rose-500/30 bg-rose-500/5")}>
+          <p className={cn("flex items-center gap-1.5 font-medium", result.ok ? "text-emerald-700" : "text-rose-700")}>
+            {result.ok ? <Check className="size-4" /> : <AlertCircle className="size-4" />}
+            {result.ok ? `Delivered — HTTP ${result.status}` : `Webhook returned HTTP ${result.status}`}
+          </p>
+          {result.response && <pre className="mt-1.5 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[0.7rem] text-muted-foreground">{result.response}</pre>}
+          <p className="mt-1.5 text-xs text-muted-foreground">Check your Slack channel / Zap / sheet — that was a real delivery.</p>
+        </div>
+      )}
+      {err && (
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 text-sm text-rose-700">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" /> {err}
+        </p>
+      )}
+      <p className="mt-3 text-xs text-muted-foreground">
+        Tip — Slack: <span className="font-mono">Apps → Incoming Webhooks → Add to a channel</span>, copy the URL. The payload&apos;s{" "}
+        <span className="font-mono">text</span> field renders as the message.
+      </p>
+    </Card>
+  );
+}
 
 export default function ConnectionsPage() {
   const [status, setStatus] = React.useState<Record<string, Status>>({});
@@ -65,10 +144,10 @@ export default function ConnectionsPage() {
         <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
           <Lock className="mt-0.5 size-5 shrink-0 text-amber-600" />
           <p className="leading-relaxed text-muted-foreground">
-            <strong className="font-medium text-foreground">Decision layer is live; delivery layer is simulated.</strong>{" "}
-            The agents already decide what to do and where it should go. Connecting a tool here{" "}
-            <strong className="font-medium text-foreground">demonstrates the OAuth flow</strong> — no real token is stored and no
-            real message is sent. Wiring one real connector is the next build.
+            <strong className="font-medium text-foreground">The Live webhook below is real</strong> — Veridian actually POSTs to
+            it (point it at Slack, a Zapier/Make hook → Gmail / Sheets / Zendesk, or Apps Script). The native tool tiles further
+            down <strong className="font-medium text-foreground">simulate the OAuth flow</strong> to show the architecture; native
+            per-tool OAuth is the productionization step.
           </p>
         </div>
 
@@ -86,10 +165,13 @@ export default function ConnectionsPage() {
           ))}
         </div>
 
+        {/* LIVE webhook connector */}
+        <LiveWebhook />
+
         {/* connectors */}
         <div>
           <h3 className="mb-3 flex items-center gap-2 font-display text-base font-semibold text-foreground">
-            <Share2 className="size-4 text-primary" /> Action destinations
+            <Share2 className="size-4 text-primary" /> Native tools <span className="rounded-full bg-secondary px-2 py-0.5 text-[0.65rem] font-normal text-muted-foreground">simulated OAuth</span>
           </h3>
           <div className="space-y-3">
             {DESTINATIONS.map((c) => {
