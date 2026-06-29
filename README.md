@@ -1,5 +1,10 @@
 # Veridian — Order Intelligence Platform
 
+> **Spot the online orders that will ship late or earn a bad review — before they do, while there's still time to act.**
+>
+> An end-to-end machine-learning product on ~100k real orders: data pipeline → calibrated risk models → FastAPI service → a Next.js workspace with an AI copilot, customer segments, demand forecasting, and bring-your-own-orders scoring.
+> **New here? [How it works, in plain English →](docs/HOW_IT_WORKS.md)**
+
 Veridian predicts which e-commerce orders are likely to go wrong — delivered
 late or followed by a dissatisfied review — so that operations teams can act on
 at-risk orders before the cost is locked in. It is built end to end on the
