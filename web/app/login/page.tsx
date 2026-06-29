@@ -12,6 +12,20 @@ import { Logo } from "@/components/site/logo";
 
 type Mode = "signin" | "signup";
 
+// Turn raw Supabase auth errors into something a human can act on. The most
+// common one in a fresh project is a provider that hasn't been switched on yet.
+function friendlyAuthError(msg: string): string {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("provider is not enabled") || m.includes("unsupported provider")) {
+    return "This sign-in method isn't switched on for the project yet. Enable the Email and Google providers in Supabase → Authentication → Providers (steps in docs/AUTH_SETUP.md), then try again.";
+  }
+  if (m.includes("invalid login credentials")) return "Email or password is incorrect.";
+  if (m.includes("email not confirmed")) return "Please confirm your email first, then sign in.";
+  if (m.includes("already registered") || m.includes("already been registered"))
+    return "That email already has an account — sign in instead.";
+  return msg;
+}
+
 export default function LoginPage() {
   const { configured } = useAuth();
 
@@ -64,7 +78,7 @@ function LoginForm() {
     if (mode === "signin") {
       const { error } = await signInWithPassword(email, password);
       if (error) {
-        setError(error);
+        setError(friendlyAuthError(error));
         setBusy(false);
         return;
       }
@@ -76,7 +90,7 @@ function LoginForm() {
         password
       );
       if (error) {
-        setError(error);
+        setError(friendlyAuthError(error));
         setBusy(false);
         return;
       }
@@ -96,7 +110,7 @@ function LoginForm() {
     setError(null);
     const { error } = await signInWithGoogle(next);
     if (error) {
-      setError(error);
+      setError(friendlyAuthError(error));
       setBusy(false);
     }
     // On success the browser is redirected to Google, so no further action.

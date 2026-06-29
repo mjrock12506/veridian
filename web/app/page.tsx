@@ -4,6 +4,7 @@ import { Hero } from "@/components/sections/hero";
 import { Problem } from "@/components/sections/problem";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { ActionCenter } from "@/components/sections/action-center";
+import { Connectors } from "@/components/sections/connectors";
 import { DemoGuide } from "@/components/sections/demo-guide";
 import { DataNote } from "@/components/sections/data-note";
 import { Roadmap } from "@/components/sections/roadmap";
@@ -19,6 +20,7 @@ export default function Home() {
         <Problem />
         <HowItWorks />
         <ActionCenter />
+        <Connectors />
         <DemoGuide />
         <DataNote />
         <Roadmap />

@@ -42,6 +42,18 @@ Supabase → **Authentication → URL Configuration** → set **Site URL** (e.g.
 handles the return at `/auth/callback`; `web/middleware.ts` refreshes the session
 on protected routes.
 
+## Troubleshooting: `provider is not enabled` (400)
+
+This error means the sign-in method itself is toggled **off** in the project:
+
+- **Email/password:** Supabase → **Authentication → Providers → Email → Enable**.
+  For an instant demo with no inbox round-trip, also turn **off** "Confirm email"
+  (Authentication → Providers → Email → *Confirm email*) so sign-up logs straight in.
+- **Google:** enable it per section 3 above (the provider toggle **and** the OAuth
+  client ID/secret are both required).
+- After enabling, set **Site URL + Redirect URLs** (section 4) to your live URL
+  (e.g. `https://veridian-lyart.vercel.app`) or Google/email links bounce back.
+
 ## Notes
 
 - The **anon key is public** (safe in the browser). Never expose the service-role key.

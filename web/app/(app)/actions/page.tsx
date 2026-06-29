@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot, Sparkles, Send, Check, Loader2, Zap, Inbox, ShieldCheck, Flame, Mail,
+  Search, ListChecks, PencilLine, Share2, CheckCircle2, Download, ChevronRight,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/app/page-header";
@@ -14,6 +15,7 @@ import { LoadingState, ErrorState } from "@/components/app/states";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api, type ScoredOrder, type DraftMessageResult } from "@/lib/api";
+import { DESTINATIONS, destination, routeFor } from "@/lib/connectors";
 import { useApi } from "@/lib/use-api";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -52,10 +54,19 @@ function composeMessage(o: ScoredOrder): string {
 const rank = (o: ScoredOrder) =>
   (priorityOf(o) === "high" ? 1000 : 0) + Math.max(o.delay_probability, o.low_review_probability);
 
+const PIPELINE = [
+  { icon: Search, label: "Scan & score", sub: "every order" },
+  { icon: ListChecks, label: "Prioritize", sub: "High first" },
+  { icon: PencilLine, label: "Draft outreach", sub: "per order" },
+  { icon: Share2, label: "Route to your tools", sub: "email · Slack · CRM" },
+  { icon: CheckCircle2, label: "Resolve & log", sub: "you approve" },
+];
+
 export default function ActionsPage() {
   const { data, loading, error, reload } = useApi(() => api.dashboard());
   const [resolved, setResolved] = React.useState<Record<string, string>>({});
   const [drafts, setDrafts] = React.useState<Record<string, DraftMessageResult>>({});
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [autopilot, setAutopilot] = React.useState(false);
   const [rules, setRules] = React.useState({ autoDelay: true, escalate: true, digest: false });
 
@@ -65,24 +76,58 @@ export default function ActionsPage() {
   );
   const queue = atRisk.filter((o) => !resolved[o.order_id]);
   const resolvedList = atRisk.filter((o) => resolved[o.order_id]);
-  const highOpen = queue.filter((o) => priorityOf(o) === "high").length;
+  const highOpen = queue.filter((o) => priorityOf(o) === "high");
   const coverage = atRisk.length ? Math.round((resolvedList.length / atRisk.length) * 100) : 0;
+  const selInQueue = queue.filter((o) => selected.has(o.order_id));
 
   function draftFor(o: ScoredOrder) {
     setDrafts((d) => ({ ...d, [o.order_id]: { message: composeMessage(o), source: "ai" } }));
   }
-  const resolveOne = (o: ScoredOrder) => setResolved((r) => ({ ...r, [o.order_id]: playbook(o) }));
+  const resolveOne = (o: ScoredOrder) => {
+    setResolved((r) => ({ ...r, [o.order_id]: playbook(o) }));
+    setSelected((s) => { const n = new Set(s); n.delete(o.order_id); return n; });
+  };
   const editDraft = (id: string, text: string) =>
     setDrafts((d) => ({ ...d, [id]: { ...d[id], message: text } }));
+  const toggleSel = (id: string) =>
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  function resolveMany(orders: ScoredOrder[]) {
+    setResolved((r) => {
+      const n = { ...r };
+      for (const o of orders) n[o.order_id] = playbook(o);
+      return n;
+    });
+    setSelected(new Set());
+  }
 
   async function runAutopilot() {
     setAutopilot(true);
     for (const o of queue) {
-      await sleep(240);
+      await sleep(220);
       setResolved((r) => ({ ...r, [o.order_id]: playbook(o) }));
     }
     setAutopilot(false);
   }
+
+  function exportCsv() {
+    const rows = [
+      ["order_id", "priority", "delay_risk", "delay_prob", "low_review_risk", "low_review_prob", "state", "category", "recommended_action", "routes_to"],
+      ...queue.map((o) => [
+        o.order_id, priorityOf(o) ?? "", o.delay_risk, o.delay_probability.toFixed(3),
+        o.low_review_risk, o.low_review_probability.toFixed(3), o.customer_state ?? "",
+        o.main_category ?? "", playbook(o), routeFor(o).map((id) => destination(id).name).join(" | "),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "veridian-action-queue.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const scanned = data?.summary.total_orders ?? 0;
+  const flagged = data?.summary.high_risk_orders ?? 0;
 
   return (
     <div>
@@ -90,7 +135,7 @@ export default function ActionsPage() {
         eyebrow="Workspace"
         badge={<DataBadge kind="demo" />}
         title="AI action center"
-        description="The AI triages every at-risk order by priority, recommends a playbook, and drafts the customer outreach for you. Resolve them — or let auto-pilot work the queue — and watch high-risk fall."
+        description="The AI scans every order, triages the at-risk ones by priority, drafts the outreach, and routes each action to your tools — so a small team clears thousands of orders with a few clicks. You approve; nothing sends on its own."
         actions={
           queue.length > 0 ? (
             <Button onClick={runAutopilot} disabled={autopilot} size="lg">
@@ -106,12 +151,63 @@ export default function ActionsPage() {
 
       {data && (
         <div className="space-y-6">
+          {/* Scale funnel — the AI narrows the haystack to the orders worth a human's time */}
+          <Card className="overflow-hidden">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <Funnel n={num(scanned)} label="orders scanned" tone="muted" />
+              <ChevronRight className="hidden size-5 shrink-0 text-muted-foreground/40 sm:block" />
+              <Funnel n={num(flagged)} label="flagged at-risk" tone="amber" />
+              <ChevronRight className="hidden size-5 shrink-0 text-muted-foreground/40 sm:block" />
+              <Funnel n={num(queue.length)} label="drafted & ready for you" tone="primary" />
+            </div>
+          </Card>
+
+          {/* Agentic pipeline strip */}
+          <Card>
+            <div className="mb-3 flex items-center gap-2">
+              <Bot className="size-4 text-primary" />
+              <h3 className="font-display text-sm font-semibold text-foreground">How the AI works each order</h3>
+            </div>
+            <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              {PIPELINE.map((s, i) => (
+                <li key={s.label} className="relative flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/30 px-3 py-2.5">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <s.icon className="size-3.5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-medium text-foreground">{s.label}</span>
+                    <span className="block truncate text-[0.7rem] text-muted-foreground">{s.sub}</span>
+                  </span>
+                  {i < PIPELINE.length - 1 && (
+                    <ChevronRight className="absolute -right-[11px] top-1/2 z-10 hidden size-4 -translate-y-1/2 text-muted-foreground/30 lg:block" />
+                  )}
+                </li>
+              ))}
+            </ol>
+          </Card>
+
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard icon={Inbox} label="Needs action" value={num(queue.length)} hint="at-risk, open" />
-            <StatCard icon={Flame} label="High priority" value={num(highOpen)} hint="open & high risk" />
+            <StatCard icon={Flame} label="High priority" value={num(highOpen.length)} hint="open & high risk" />
             <StatCard icon={ShieldCheck} label="Resolved" value={num(resolvedList.length)} hint="actioned by you / AI" />
             <StatCard icon={Bot} label="Coverage" value={`${coverage}%`} hint="of at-risk handled" />
           </div>
+
+          {/* Connected destinations — where actions land */}
+          <Card>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <Share2 className="size-4 text-primary" /> Actions route to
+              </span>
+              {DESTINATIONS.map((d) => (
+                <span key={d.id} className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs text-foreground/80">
+                  <d.icon className={cn("size-3.5", d.color)} /> {d.name}
+                  <span className="size-1.5 rounded-full bg-emerald-500" title="Connected (demo)" />
+                </span>
+              ))}
+              <span className="ml-auto text-xs text-muted-foreground">Demo connectors · OAuth in your account</span>
+            </div>
+          </Card>
 
           <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
             <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-600" />
@@ -119,29 +215,40 @@ export default function ActionsPage() {
               <p className="font-medium text-foreground">You&apos;re always in control</p>
               <p className="mt-0.5 leading-relaxed text-muted-foreground">
                 Veridian <strong className="font-medium text-foreground">drafts</strong> messages and{" "}
-                <strong className="font-medium text-foreground">recommends</strong> actions — you review, edit, and send.
-                Nothing reaches a customer automatically, and contact details stay in your own data; Veridian never messages customers directly.
+                <strong className="font-medium text-foreground">recommends</strong> actions — you approve in bulk or one at a time.
+                Nothing reaches a customer automatically, and contact details stay in your own connected systems.
               </p>
             </div>
           </div>
 
-          <Card>
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <h3 className="font-display text-base font-semibold text-foreground">Automation rules</h3>
+          {/* Bulk action bar — the scale story: clear the queue without touching each order */}
+          {queue.length > 0 && (
+            <div className="sticky top-3 z-20 flex flex-wrap items-center gap-2 rounded-2xl border border-border/70 bg-card/95 p-3 shadow-card backdrop-blur">
+              <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+                <input type="checkbox"
+                  checked={selInQueue.length === queue.length && queue.length > 0}
+                  ref={(el) => { if (el) el.indeterminate = selInQueue.length > 0 && selInQueue.length < queue.length; }}
+                  onChange={(e) => setSelected(e.target.checked ? new Set(queue.map((o) => o.order_id)) : new Set())}
+                  className="size-4 accent-[hsl(var(--primary))]" />
+                Select all
+              </label>
+              {selInQueue.length > 0 ? (
+                <Button size="sm" onClick={() => resolveMany(selInQueue)}>
+                  <Send className="size-3.5" /> Approve &amp; send {selInQueue.length} selected
+                </Button>
+              ) : (
+                <Button size="sm" disabled={highOpen.length === 0} onClick={() => resolveMany(highOpen)}>
+                  <Flame className="size-3.5" /> Approve &amp; send all High ({highOpen.length})
+                </Button>
+              )}
+              <Button size="sm" variant="secondary" onClick={() => resolveMany(queue)}>
+                <Check className="size-3.5" /> Resolve all ({queue.length})
+              </Button>
+              <Button size="sm" variant="ghost" onClick={exportCsv} className="ml-auto">
+                <Download className="size-3.5" /> Export queue
+              </Button>
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              When connected to your live orders, these draft and queue actions for your review — they never auto-send.
-            </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <Toggle on={rules.autoDelay} onClick={() => setRules((r) => ({ ...r, autoDelay: !r.autoDelay }))}
-                label="Auto-draft message on High delay" />
-              <Toggle on={rules.escalate} onClick={() => setRules((r) => ({ ...r, escalate: !r.escalate }))}
-                label="Escalate High low-review to support" />
-              <Toggle on={rules.digest} onClick={() => setRules((r) => ({ ...r, digest: !r.digest }))}
-                label="Daily 9am risk digest" />
-            </div>
-          </Card>
+          )}
 
           <div>
             <h3 className="mb-3 flex items-center gap-2 font-display text-base font-semibold text-foreground">
@@ -150,7 +257,7 @@ export default function ActionsPage() {
             </h3>
             {queue.length === 0 ? (
               <Card className="flex items-center gap-3 text-sm text-muted-foreground">
-                <ShieldCheck className="size-5 text-emerald-600" /> Queue clear — every at-risk order has an action applied.
+                <ShieldCheck className="size-5 text-emerald-600" /> Queue clear — every at-risk order has an action applied and routed.
               </Card>
             ) : (
               <motion.ul layout className="space-y-3">
@@ -167,6 +274,8 @@ export default function ActionsPage() {
                       <OrderCard
                         o={o}
                         draft={drafts[o.order_id]}
+                        selected={selected.has(o.order_id)}
+                        onSelect={() => toggleSel(o.order_id)}
                         onDraft={() => draftFor(o)}
                         onResolve={() => resolveOne(o)}
                         onEdit={(t) => editDraft(o.order_id, t)}
@@ -178,15 +287,39 @@ export default function ActionsPage() {
             )}
           </div>
 
+          <Card>
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <h3 className="font-display text-base font-semibold text-foreground">Automation rules</h3>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              When connected to your live orders, these draft and queue actions for your review — they never auto-send.
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <Toggle on={rules.autoDelay} onClick={() => setRules((r) => ({ ...r, autoDelay: !r.autoDelay }))}
+                label="Auto-draft message on High delay" />
+              <Toggle on={rules.escalate} onClick={() => setRules((r) => ({ ...r, escalate: !r.escalate }))}
+                label="Escalate High low-review to support" />
+              <Toggle on={rules.digest} onClick={() => setRules((r) => ({ ...r, digest: !r.digest }))}
+                label="Daily 9am risk digest to Slack" />
+            </div>
+          </Card>
+
           {resolvedList.length > 0 && (
             <div>
-              <h3 className="mb-3 font-display text-base font-semibold text-foreground">Resolved</h3>
+              <h3 className="mb-3 font-display text-base font-semibold text-foreground">Resolved &amp; routed</h3>
               <Card className="divide-y divide-border/50 p-0">
                 {resolvedList.map((o) => (
-                  <div key={o.order_id} className="flex items-center gap-3 px-5 py-3 text-sm">
+                  <div key={o.order_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-sm">
                     <Check className="size-4 shrink-0 text-emerald-600" />
                     <span className="font-mono text-xs text-foreground/80">{o.order_id.slice(0, 10)}…</span>
                     <span className="text-muted-foreground">{resolved[o.order_id]}</span>
+                    <span className="ml-auto flex items-center gap-1">
+                      {routeFor(o).map((id) => {
+                        const d = destination(id);
+                        return <d.icon key={id} className={cn("size-3.5", d.color)} aria-label={d.name} />;
+                      })}
+                    </span>
                   </div>
                 ))}
               </Card>
@@ -198,29 +331,57 @@ export default function ActionsPage() {
   );
 }
 
+function Funnel({ n, label, tone }: { n: string; label: string; tone: "muted" | "amber" | "primary" }) {
+  const color = tone === "primary" ? "text-primary" : tone === "amber" ? "text-amber-600" : "text-foreground";
+  return (
+    <div className="flex-1">
+      <div className={cn("font-display text-2xl font-bold tabular-nums sm:text-3xl", color)}>{n}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
 function OrderCard({
-  o, draft, onDraft, onResolve, onEdit,
+  o, draft, selected, onSelect, onDraft, onResolve, onEdit,
 }: {
   o: ScoredOrder;
   draft?: DraftMessageResult;
+  selected: boolean;
+  onSelect: () => void;
   onDraft: () => void;
   onResolve: () => void;
   onEdit: (text: string) => void;
 }) {
   const isHigh = priorityOf(o) === "high";
+  const routes = routeFor(o);
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className={cn("flex flex-col gap-3 transition-colors", selected && "border-primary/40 bg-primary/[0.03]")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={cn("rounded-full px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wide",
-              isHigh ? "bg-rose-500/10 text-rose-700" : "bg-amber-500/10 text-amber-700")}>
-              {isHigh ? "High priority" : "Medium"}
-            </span>
-            <span className="font-mono text-xs text-foreground/80">{o.order_id.slice(0, 12)}…</span>
-            <span className="text-xs text-muted-foreground">{o.customer_state ?? "—"} · {o.main_category ?? "—"}</span>
+        <div className="flex min-w-0 gap-3">
+          <input type="checkbox" checked={selected} onChange={onSelect}
+            className="mt-1 size-4 shrink-0 accent-[hsl(var(--primary))]" aria-label="Select order" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn("rounded-full px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wide",
+                isHigh ? "bg-rose-500/10 text-rose-700" : "bg-amber-500/10 text-amber-700")}>
+                {isHigh ? "High priority" : "Medium"}
+              </span>
+              <span className="font-mono text-xs text-foreground/80">{o.order_id.slice(0, 12)}…</span>
+              <span className="text-xs text-muted-foreground">{o.customer_state ?? "—"} · {o.main_category ?? "—"}</span>
+            </div>
+            <p className="mt-2 text-sm font-medium text-foreground">{playbook(o)}</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-muted-foreground">
+              <span>Routes to</span>
+              {routes.map((id) => {
+                const d = destination(id);
+                return (
+                  <span key={id} className="inline-flex items-center gap-1 rounded-md bg-secondary/60 px-1.5 py-0.5">
+                    <d.icon className={cn("size-3", d.color)} /> {d.name.split(" / ")[0]}
+                  </span>
+                );
+              })}
+            </div>
           </div>
-          <p className="mt-2 text-sm font-medium text-foreground">{playbook(o)}</p>
         </div>
         <div className="flex flex-col items-end gap-1.5 text-xs">
           <span className="flex items-center gap-1.5"><span className="tabular-nums text-muted-foreground">{pct(o.delay_probability)}</span><RiskBadge level={o.delay_risk} label="delay" /></span>
@@ -256,7 +417,7 @@ function OrderCard({
         </Button>
         <Button size="sm" onClick={onResolve}>
           {draft ? <Send className="size-3.5" /> : <Check className="size-3.5" />}
-          {draft ? "Send & resolve" : "Mark resolved"}
+          {draft ? "Send & resolve" : "Approve & resolve"}
         </Button>
       </div>
     </Card>
