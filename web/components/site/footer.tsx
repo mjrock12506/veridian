@@ -1,46 +1,50 @@
+import { Github } from "lucide-react";
+
 import { Logo } from "@/components/site/logo";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
-    title: "Product",
+    title: "Workspace",
     links: [
       { label: "Risk dashboard", href: "/dashboard" },
+      { label: "AI action center", href: "/actions" },
+      { label: "Agentic workflow", href: "/agent" },
+      { label: "Impact & ROI", href: "/roi" },
+    ],
+  },
+  {
+    title: "Explore",
+    links: [
       { label: "AI copilot", href: "/copilot" },
-      { label: "Segments", href: "/segments" },
-      { label: "Forecasts", href: "/forecast" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "#" },
-      { label: "Careers", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Contact", href: "#" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { label: "Docs", href: "#" },
-      { label: "Model card", href: "#" },
-      { label: "Changelog", href: "#" },
-      { label: "Status", href: "#" },
+      { label: "Customer segments", href: "/segments" },
+      { label: "Demand forecast", href: "/forecast" },
+      { label: "Score / connect your data", href: "/connect" },
     ],
   },
 ];
+
+const REPO_URL = "https://github.com/mjrock12506/veridian";
 
 export function Footer() {
   return (
     <footer className="border-t border-border/60 bg-background/60">
       <div className="container py-16">
-        <div className="grid gap-12 md:grid-cols-[1.4fr_repeat(3,1fr)]">
-          <div className="max-w-xs">
+        <div className="grid gap-12 md:grid-cols-[1.6fr_1fr_1fr]">
+          <div className="max-w-sm">
             <Logo />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Order intelligence that predicts which orders go wrong — and what to
-              do about it — before the cost is locked in.
+              A portfolio project demonstrating end-to-end ML product engineering — calibrated
+              risk models, an agentic action workflow, and an LLM copilot, built on the public
+              Olist e-commerce dataset.
             </p>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-secondary/40 px-3 py-2 text-sm text-foreground/80 transition-colors hover:text-foreground"
+            >
+              <Github className="size-4" /> View the source
+            </a>
           </div>
           {COLUMNS.map((col) => (
             <div key={col.title}>
@@ -63,13 +67,9 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-border/60 pt-8 text-sm text-muted-foreground sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} Veridian. Demo project.</p>
-          <div className="flex gap-6">
-            <a href="#" className="transition-colors hover:text-foreground">Privacy</a>
-            <a href="#" className="transition-colors hover:text-foreground">Terms</a>
-            <a href="#" className="transition-colors hover:text-foreground">Security</a>
-          </div>
+        <div className="mt-14 flex flex-col items-start justify-between gap-2 border-t border-border/60 pt-8 text-sm text-muted-foreground sm:flex-row sm:items-center">
+          <p>Veridian — a personal portfolio / demo project. Not a company.</p>
+          <p>Built on the public Olist Brazilian e-commerce dataset (2016–2018).</p>
         </div>
       </div>
     </footer>

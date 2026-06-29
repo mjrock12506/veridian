@@ -87,6 +87,10 @@ export default function AgentPage() {
 
       {data && order && (
         <div className="space-y-5">
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-xs text-amber-700">
+            Preview: the run uses real model scores and a real draft, but delivery to external
+            tools (email, Slack, tickets) is <strong>simulated</strong> — no message is actually sent.
+          </p>
           {/* The order under work */}
           <Card className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><Bot className="size-5" /></span>

@@ -185,7 +185,7 @@ export default function ActionsPage() {
                   <span className="size-1.5 rounded-full bg-emerald-500" title="Connected (demo)" />
                 </span>
               ))}
-              <span className="ml-auto text-xs text-muted-foreground">Demo connectors · OAuth in your account</span>
+              <span className="ml-auto text-xs text-muted-foreground">Preview · routing is simulated, not sent to live tools yet</span>
             </div>
           </Card>
 
