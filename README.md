@@ -1,17 +1,23 @@
 # Veridian — Order Intelligence Platform
 
-> **Spot the online orders that will ship late or earn a bad review — before they do, while there's still time to act.**
->
-> An end-to-end machine-learning product on ~100k real orders: data pipeline → calibrated risk models → FastAPI service → a Next.js workspace with an AI copilot, customer segments, demand forecasting, and bring-your-own-orders scoring.
-> **New here? [How it works, in plain English →](docs/HOW_IT_WORKS.md)**
+> **Predict which e-commerce orders will ship late or earn a 1–2★ review — and act before the cost hits.**
 
-Veridian predicts which e-commerce orders are likely to go wrong — delivered
-late or followed by a dissatisfied review — so that operations teams can act on
-at-risk orders before the cost is locked in. It is built end to end on the
-[Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
-(~100k orders, 2016–2018) and covers the full lifecycle: data engineering,
-model training and honest evaluation, calibrated probability serving, and an
-applied-AI copilot that answers questions grounded in the data and models.
+**[▶ Live demo](https://veridian-lyart.vercel.app)**  ·  [How it works, in plain English](docs/HOW_IT_WORKS.md)
+
+Veridian scores every order the moment it's placed, flags the ones likely to go
+wrong, and helps an operations team act before the refund, churn, or bad review
+lands. It's a complete ML product — **data pipeline → calibrated risk models →
+FastAPI service → a Next.js workspace** — built on ~100k real
+[Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) orders
+(2016–2018).
+
+### What's inside
+
+- 🎯 **Two calibrated risk models** — late delivery & low review (XGBoost, isotonic-calibrated)
+- 🧠 **An LLM copilot** grounded in the data, model cards, and your own uploaded orders
+- ⚡ **An agentic AI action center** — triage, draft outreach, route to your tools, one-click bulk approve
+- 📊 **Customer segments, a demand forecast, and an ROI calculator**
+- 🔌 **A live webhook connector** (Slack / Zapier / Sheets / Zendesk) and CSV "bring your own orders" scoring
 
 ## The problem
 
@@ -77,15 +83,16 @@ Dependencies are pinned in `requirements.txt` (full stack) and
 ## Repository layout
 
 ```
-data/         raw (gitignored) + processed artifacts
-notebooks/    exploratory data analysis
 pipeline/     ETL: extract, transform, load, run
 models/       feature definitions, training, evaluation, artifacts
-api/          FastAPI app: schemas, model registry, endpoints
-ai/           copilot: LLM interface, prediction tools, RAG, eval harness
-web/          Next.js app: landing page + dashboard / copilot / score UI
+api/          FastAPI app: schemas, model registry, endpoints, webhook dispatch
+ai/           copilot: multi-provider LLM interface, prediction tools, RAG, eval
+web/          Next.js workspace: landing + dashboard, action center, copilot, ROI, integrations, connect
+data/         raw (gitignored) + processed warehouse (SQLite)
 reports/      generated metrics, confusion matrices, SHAP, model + eval reports
-docs/         vision, data dictionary, architecture, model card
+docs/         vision, data dictionary, architecture, model card, product overview
+qa/           end-to-end QA suite + test dataset
+notebooks/    exploratory data analysis
 tests/        pipeline, model, API, and AI tests
 ```
 
