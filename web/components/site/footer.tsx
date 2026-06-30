@@ -33,9 +33,9 @@ export function Footer() {
           <div className="max-w-sm">
             <Logo />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              A portfolio project demonstrating end-to-end ML product engineering — calibrated
-              risk models, an agentic action workflow, and an LLM copilot, built on the public
-              Olist e-commerce dataset.
+              Order intelligence that predicts which orders will go wrong — and acts on them —
+              before the cost is locked in. Calibrated risk models, an agentic action workflow,
+              and an LLM copilot.
             </p>
             <a
               href={REPO_URL}
@@ -68,7 +68,7 @@ export function Footer() {
         </div>
 
         <div className="mt-14 flex flex-col items-start justify-between gap-2 border-t border-border/60 pt-8 text-sm text-muted-foreground sm:flex-row sm:items-center">
-          <p>Veridian — a personal portfolio / demo project. Not a company.</p>
+          <p>Veridian — order intelligence platform.</p>
           <p>Built on the public Olist Brazilian e-commerce dataset (2016–2018).</p>
         </div>
       </div>

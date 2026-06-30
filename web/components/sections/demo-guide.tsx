@@ -35,7 +35,7 @@ const STEPS: {
     title: "Explore the risk dashboard",
     href: "/dashboard",
     cta: "Open the dashboard",
-    body: "See ~100k orders ranked by risk, with portfolio stats up top. This is the best place to start.",
+    body: "See ~100k orders ranked by risk, with summary stats up top. This is the best place to start.",
     start: true,
   },
   {
